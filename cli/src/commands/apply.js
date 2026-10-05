@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { resolve, join } from 'path';
+import os from 'os';
 import { execSync } from 'child_process';
 import { loadManifestAsync, validateManifest, runSemanticChecks } from './validate.js';
 import { runPreflight } from '../utils/preflight.js';
@@ -240,11 +241,24 @@ export async function applyCommand(path, options = {}) {
         }
       }
 
-      // MCP config for Claude
+      // MCP config for Claude (both project-scope .mcp.json and .claude/settings.json)
       if (mcpServers.length > 0) {
+        const rootMcpPath = join(targetDir, '.mcp.json');
+        mergeMcpConfig(rootMcpPath, mcpServers);
+        console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.mcp.json')} (Claude Code standard)`);
+
         const claudeMcpPath = join(targetDir, '.claude', 'settings.json');
         mergeMcpConfig(claudeMcpPath, mcpServers);
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.claude/settings.json')}`);
+
+        // Native Claude Desktop App (Free tier supported!)
+        if (os.platform() === 'darwin') {
+          const desktopConfigPath = join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+          if (existsSync(desktopConfigPath)) {
+            mergeMcpConfig(desktopConfigPath, mcpServers);
+            console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('Claude Desktop App (macOS)')}`);
+          }
+        }
       }
     }
 
@@ -330,6 +344,28 @@ export async function applyCommand(path, options = {}) {
         const rooMcpPath = join(targetDir, '.roo', 'mcp.json');
         mergeMcpConfig(rooMcpPath, mcpServers);
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.roo/mcp.json')}`);
+      }
+    }
+
+    // --- OpenCode Injection (Open Source AI Coding Engine) ---
+    if (targetClient === 'all' || targetClient === 'opencode') {
+      if (mcpServers.length > 0) {
+        const opencodePath = join(targetDir, 'opencode.json');
+        let existing = { $schema: 'https://opencode.ai/config.json', mcp: {} };
+        if (existsSync(opencodePath)) {
+          try { existing = JSON.parse(readFileSync(opencodePath, 'utf-8')); } catch {}
+          if (!existing.mcp) existing.mcp = {};
+        }
+        for (const server of mcpServers) {
+          const cmdParts = [server.command || 'npx', ...(server.args || [])];
+          existing.mcp[server.id || server.name] = {
+            type: 'local',
+            command: cmdParts,
+            enabled: true
+          };
+        }
+        writeFileSync(opencodePath, JSON.stringify(existing, null, 2), 'utf-8');
+        console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('opencode.json')}`);
       }
     }
 

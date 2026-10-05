@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, unlinkSync, rmdirSync } from 'fs';
 import { resolve, join } from 'path';
+import os from 'os';
 import { loadManifest } from './validate.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
@@ -81,12 +82,28 @@ export async function cleanCommand(path, options = {}) {
         }
       }
 
-      // 3. MCP servers in .claude/settings.json
+      // 3. MCP servers in .mcp.json and .claude/settings.json
       if (serverIds.length > 0) {
-        const removed = unmergeMcpConfig(join(targetDir, '.claude', 'settings.json'), serverIds);
-        if (removed > 0) {
-          console.log(`  ${chalk.red('✗ Pruned:')} ${removed} servers from .claude/settings.json`);
-          itemsCleaned += removed;
+        const removedRoot = unmergeMcpConfig(join(targetDir, '.mcp.json'), serverIds);
+        if (removedRoot > 0) {
+          console.log(`  ${chalk.red('✗ Pruned:')} ${removedRoot} servers from .mcp.json`);
+          itemsCleaned += removedRoot;
+        }
+        const removedClaude = unmergeMcpConfig(join(targetDir, '.claude', 'settings.json'), serverIds);
+        if (removedClaude > 0) {
+          console.log(`  ${chalk.red('✗ Pruned:')} ${removedClaude} servers from .claude/settings.json`);
+          itemsCleaned += removedClaude;
+        }
+
+        if (os.platform() === 'darwin') {
+          const desktopConfigPath = join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+          if (existsSync(desktopConfigPath)) {
+            const removedDesktop = unmergeMcpConfig(desktopConfigPath, serverIds);
+            if (removedDesktop > 0) {
+              console.log(`  ${chalk.red('✗ Pruned:')} ${removedDesktop} servers from Claude Desktop App`);
+              itemsCleaned += removedDesktop;
+            }
+          }
         }
       }
     }
@@ -175,6 +192,30 @@ export async function cleanCommand(path, options = {}) {
           console.log(`  ${chalk.red('✗ Pruned:')} ${removed} servers from .roo/mcp.json`);
           itemsCleaned += removed;
         }
+      }
+    }
+
+    // --- Clean OpenCode ---
+    if (targetClient === 'all' || targetClient === 'opencode') {
+      const opencodePath = join(targetDir, 'opencode.json');
+      if (existsSync(opencodePath) && serverIds.length > 0) {
+        try {
+          const cfg = JSON.parse(readFileSync(opencodePath, 'utf-8'));
+          let removed = 0;
+          if (cfg.mcp) {
+            for (const id of serverIds) {
+              if (cfg.mcp[id]) {
+                delete cfg.mcp[id];
+                removed++;
+              }
+            }
+            if (removed > 0) {
+              writeFileSync(opencodePath, JSON.stringify(cfg, null, 2), 'utf-8');
+              console.log(`  ${chalk.red('✗ Pruned:')} ${removed} servers from opencode.json`);
+              itemsCleaned += removed;
+            }
+          }
+        } catch {}
       }
     }
 
