@@ -10,6 +10,8 @@ import { exportCommand } from '../src/commands/export.js';
 import { packCommand } from '../src/commands/pack.js';
 import { unpackCommand } from '../src/commands/unpack.js';
 import { applyCommand } from '../src/commands/apply.js';
+import { diffCommand } from '../src/commands/diff.js';
+import { cleanCommand } from '../src/commands/clean.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -62,5 +64,20 @@ program
   .option('--auto-start', 'Attempt to automatically start inactive background services')
   .option('-f, --force', 'Force provisioning even if platform checks warn')
   .action(applyCommand);
+
+program
+  .command('diff [path]')
+  .description('Visual non-destructive preview of changes before applying')
+  .option('-t, --target <client>', 'Target client: all, claude, cursor', 'all')
+  .option('-c, --cwd <dir>', 'Target project directory to inspect', '.')
+  .action(diffCommand);
+
+program
+  .command('clean [path]')
+  .description('Safely remove provisioned agent files and prune MCP configs')
+  .option('-t, --target <client>', 'Target client: all, claude, cursor', 'all')
+  .option('-c, --cwd <dir>', 'Target project directory to clean', '.')
+  .option('-f, --force', 'Force removal of modified root config files')
+  .action(cleanCommand);
 
 program.parse();

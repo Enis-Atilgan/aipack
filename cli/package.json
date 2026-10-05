@@ -7,7 +7,7 @@
     "aipack": "./bin/aipack.js"
   },
   "scripts": {
-    "test": "node --test src/**/*.test.js",
+    "test": "node --test test/",
     "lint": "eslint src/"
   },
   "keywords": ["ai", "llm", "persona", "agent", "cursor", "claude", "chatgpt", "mcp"],
