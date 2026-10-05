@@ -285,7 +285,8 @@ Bu model şunu sağlıyor: Format yaygınlaşır → herkes `.aipack` kullanır 
 doğrudan çakışmaktadır.
 
 ### Kararım:
-1. Öncelik sıramızda en başa alınmıştır. Çakışmayı gidermek için marka, CLI adı ve paket uzantısı stratejisi (örn: `agentpack`, `aipkg` veya üst seviye tescilli ad) netleştirilecektir.
+1. Marka çakışması kesin olarak giderilmiştir: **PackAI** adı, `.packai` uzantısı ve `packai.yaml` manifestosu seçilmiştir.
+2. CLI binary adı `packai` olarak mühürlenmiştir.
 
 ---
 
@@ -296,13 +297,45 @@ doğrudan çakışmaktadır.
 2. AgentSync, agentctl, scribe vb. 8-10 açık kaynak araç sync işini zaten yapıyor. **Sync bizim için ürün değil, sadece bir özelliktir.**
 
 ### Kararım ve Ürün Tanımımız:
-AIPack = Standartların üstünde **Bundle + Önkoşul Denetimi (Pre-flight) + Cross-Client Dağıtım / Marketplace** katmanıdır.
+PackAI = Standartların üstünde **Bundle + Önkoşul Denetimi (Pre-flight) + Cross-Client Dağıtım / Marketplace** katmanıdır.
 
 1. **Cross-Client Marketplace:** Claude Code, Codex, Cursor'ın kendi plugin sistemleri kendi manifestolarını ister; biz tek paketten hepsine provizyon yapar ve dağıtırız.
 2. **Doğrulanmış Kurulum Garantisi:** "Bu paket senin makinende kesin çalışır" garantisi (OS, RAM, paket yöneticileri, binary, servis, secret denetimi).
-3. **Gerçek Bundle:** Ajan, kural (`AGENTS.md`), yetenek (`SKILL.md`), araç (`mcp.json`), gereksinimler ve iş akışı (`aipack.yaml`) tek pakette.
+3. **Gerçek Bundle:** Ajan, kural (`AGENTS.md`), yetenek (`SKILL.md`), araç (`mcp.json`), gereksinimler ve iş akışı (`packai.yaml`) tek pakette.
 4. **Atomik Apply/Clean:** Mevcut ayarları bozmadan merge, sahiplik işaretleriyle tam temizlik.
 5. **init --from-existing:** Geliştiricinin mevcut projesinden tek tıkla paylaşılabilir paket üretimi.
+
+---
+
+## Soru 10: Çift Katmanlı Kapsülleme Doktrini (Sonsuz Çeşitlilik Nasıl Taşınır?) (05.10.2026 Eklendi)
+
+### Problem:
+Dünyada yüzlerce AI framework'ü (CrewAI, LangGraph, AutoGen, Swarm, yerel Python betikleri) vardır ve her gün yenisi çıkmaktadır. Hepsini tek tek anlamak imkansızdır.
+
+### Kararım:
+PackAI iki katmanlı kapsülleme doktrinini benimser:
+1. **Katman 1: Beyaz Kutu (Açık Standartlar - IDE & Agent Mesh):**
+   Linux Foundation `AGENTS.md`, Anthropic `MCP`, `SKILL.md` ve Cursor/Claude alt ajanları doğrudan parse edilir ve taşınır.
+2. **Katman 2: Siyah Kutu (Universal Runtime & Execution Wrapper):**
+   Bespoke/özel kod tabanlı sistemler için `requirements` (binaries, services, secrets) ve `execution: { command: "..." }` bloğu kullanılır. PackAI iç kodu bilmek zorunda değildir; ortamı hazırlar, API anahtarlarını Keychain'den enjekte eder ve `packai run` ile süreci ayağa kaldırır (Docker benzeri kapsülleme).
+
+---
+
+## Soru 11: Eklenti Standartları İhracat Motoru (05.10.2026 Eklendi)
+
+### Kararım:
+Geliştiricilerin tek bir `.packai` kaynağından tüm büyük IDE'lerin resmi eklenti mağazalarına manifest üretmesi sağlanmıştır (`packai export --target plugins`):
+- **Claude Code Plugin:** `.claude-plugin/plugin.json`, `CLAUDE.md`, `.claude/agents/*.md`, `.mcp.json`, `skills/`
+- **Cursor Plugin:** `.cursor-plugin/plugin.json`, `.cursorrules`, `.cursor/rules/*.mdc`, `.cursor/mcp.json`
+- **OpenAI Codex Plugin:** `ai-plugin.json` (v1 schema), `AGENTS.md`, `custom_instructions.txt`
+
+---
+
+## Soru 12: Fiziksel Bilgi Bankası ve Agent Skills Provizyonu (05.10.2026 Eklendi)
+
+### Kararım:
+1. **Agent Skills (`skills/`):** Projedeki skill'ler taranır, `.packai` içine alınır ve hedef projenin `skills/` klasörüne provizyon edilir.
+2. **Knowledge Base (`knowledge/`):** Büyük dokümanlar prompt içine yapıştırılarak token patlaması yaratılmaz; hedef projenin `.packai/knowledge/` dizinine fiziksel olarak yazılır ve `@.packai/knowledge/...` dosya yolu referansıyla erişilir.
 
 ---
 
@@ -310,11 +343,13 @@ AIPack = Standartların üstünde **Bundle + Önkoşul Denetimi (Pre-flight) + C
 
 | Soru | Karar | Gerekçe |
 |---|---|---|
+| İsim & Marka | **PackAI** (`.packai`, `packai.yaml`, CLI: `packai`) | `aipack.ai` çakışmasını giderme ve pazar netliği |
 | Konumlandırma | Standartların üstünde Bundle + Pre-Flight + Marketplace | Standartlar oturdu, format icat etmiyoruz |
-| Paket Yapısı | `AGENTS.md` + `SKILL.md` + `mcp.json` + `aipack.yaml` | Standart dosyalar olduğu gibi paketlenir |
-| Runtime | Altyapı/VM sağlayıcısı DEĞİLİZ; Pre-flight audit + injection | Kullanıcı riski ve tercihi; hafif CLI |
-| Sandbox | `requirements.sandbox` sadece tavsiye etiketidir | Zorla Docker/WSL kurmuyoruz, raporluyoruz |
-| Oluşturma | `aipack init --from-existing` + şablon + web form | Sıfır sürtünmeyle pazaryerine içerik arzı |
-| Açık kaynak | CLI açık, Marketplace kapalı | Docker / npm modeli |
-| İsim Çakışması | `aipack.ai` çakışması için marka stratejisi (1. Öncelik) | Hukuki ve pazar karışıklığını önleme |
+| Paket Yapısı | `AGENTS.md` + `SKILL.md` + `mcp.json` + `packai.yaml` + `knowledge/` | Standart dosyalar olduğu gibi paketlenir |
+| Runtime | Altyapı/VM sağlayıcısı DEĞİLİZ; Pre-flight audit + injection + `packai run` | Docker / npm modeli; kullanıcı API key'i |
+| Çeşitlilik Çözümü | Çift Katman: Beyaz Kutu (Açık Standartlar) + Siyah Kutu (Execution Wrapper) | Her framework'ü kod seviyesinde bilmeye gerek yok |
+| Eklenti İhracatı | Claude Code, Cursor ve Codex Plugin manifestleri tek tıkla üretilir | Çoklu platform geliştirici pazarını ele geçirme |
+| Sandbox | `requirements.sandbox` bilgilendirici etikettir | Zorla Docker/WSL kurmuyoruz, raporluyoruz |
+| Oluşturma | `packai init --from-existing` + CrewAI/Roo-Code/Claude/Cursor algılayıcı | Sıfır sürtünmeyle pazaryerine içerik arzı |
+| Açık kaynak | CLI açık (MIT), Marketplace kapalı | Docker / npm modeli |
 | Stack | Next.js + Supabase + Vercel (CLI: Node.js) | En hızlı tek kişilik MVP ve paylaşılan kod |
