@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aipack.dev/schema/manifest/v1",
+  "title": "AIPack Manifest",
+  "description": "Schema for .aipack manifest.json files",
+  "type": "object",
+  "required": ["spec_version", "name", "version", "description", "author", "level"],
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Format specification version"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+      "minLength": 2,
+      "maxLength": 64,
+      "description": "Unique pack name in slug format"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (semver)"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "author": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "github": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "level": {
+      "type": "string",
+      "enum": ["simple", "enhanced", "system"]
+    },
+    "license": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": ["coding", "writing", "business", "legal", "education", "marketing", "data", "design", "productivity", "lifestyle", "finance", "support", "research", "other"]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 30 },
+      "maxItems": 10
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z]{2}$"
+    },
+    "icon": { "type": "string" },
+    "repository": { "type": "string", "format": "uri" },
+    "persona": {
+      "type": "object",
+      "properties": {
+        "role": { "type": "string" },
+        "tone": { "type": "string" },
+        "expertise": { "type": "array", "items": { "type": "string" } },
+        "language": { "type": "string" },
+        "instructions": { "type": "string" },
+        "file": { "type": "string" }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "items": { "type": "array", "items": { "type": "string" } },
+        "file": { "type": "string" }
+      }
+    },
+    "knowledge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["embedded", "reference"] },
+          "path": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "format": { "type": "string", "enum": ["markdown", "json", "csv", "text"] },
+          "size_mb": { "type": "number" },
+          "hash": { "type": "string" }
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "mcp_servers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "source": { "type": "string" },
+              "config": { "type": "object" },
+              "required": { "type": "boolean" },
+              "ref": { "type": "string" }
+            }
+          }
+        },
+        "functions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "endpoint"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "endpoint": { "type": "string", "format": "uri" },
+              "method": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE"] },
+              "auth": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "model_preference": { "type": "string", "enum": ["fast", "balanced", "smart"] },
+          "persona": { "$ref": "#/properties/persona" },
+          "rules": { "$ref": "#/properties/rules" },
+          "tools": { "$ref": "#/properties/tools" },
+          "knowledge": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                { "$ref": "#/properties/knowledge/items" },
+                { "type": "object", "required": ["ref"], "properties": { "ref": { "type": "string" } } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["entry", "routes"],
+      "properties": {
+        "entry": { "type": "string" },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "condition"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "condition": { "type": "string" },
+              "fallback": { "type": "boolean" }
+            }
+          }
+        },
+        "shared_context": {
+          "type": "object",
+          "properties": {
+            "pass_conversation_history": { "type": "boolean" },
+            "max_history_messages": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "exports": {
+      "type": "object",
+      "properties": {
+        "cursor": { "$ref": "#/$defs/exportTarget" },
+        "claude": { "$ref": "#/$defs/exportTarget" },
+        "chatgpt": { "$ref": "#/$defs/exportTarget" }
+      }
+    }
+  },
+  "$defs": {
+    "exportTarget": {
+      "type": "object",
+      "properties": {
+        "target_file": { "type": "string" },
+        "include": { "type": "array", "items": { "type": "string" } },
+        "format": { "type": "string", "enum": ["markdown", "text", "json"] },
+        "max_chars": { "type": "integer" }
+      }
+    }
+  }
+}
