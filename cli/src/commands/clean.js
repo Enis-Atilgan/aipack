@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, unlinkSync, rmdirSync, rmSync } from 'fs';
 import { resolve, join } from 'path';
 import os from 'os';
-import { loadManifest } from './validate.js';
+import { loadManifestAsync } from './validate.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -33,8 +33,10 @@ function unmergeMcpConfig(filePath, serverIds) {
 }
 
 export async function cleanCommand(path, options = {}) {
+  let tempCleanupDir = null;
   try {
-    const { manifest } = loadManifest(path);
+    const { manifest, dir, isTemp } = await loadManifestAsync(path);
+    if (isTemp) tempCleanupDir = dir;
     const targetDir = resolve(options.cwd || '.');
     const targetClient = (options.target || 'all').toLowerCase();
 
@@ -259,5 +261,9 @@ export async function cleanCommand(path, options = {}) {
   } catch (err) {
     log.error(err.message);
     process.exit(1);
+  } finally {
+    if (tempCleanupDir) {
+      try { rmSync(tempCleanupDir, { recursive: true, force: true }); } catch {}
+    }
   }
 }

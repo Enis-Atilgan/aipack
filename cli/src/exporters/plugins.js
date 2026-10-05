@@ -91,7 +91,14 @@ export function exportClaudePlugin(manifest, dir, outputDir) {
     fileCount++;
   }
 
-  return { target: 'claude-plugin', outputDir: out, fileCount };
+  return {
+    target: 'claude-plugin',
+    outputDir: out,
+    pluginDir: out,
+    manifestFile: join(pluginDir, 'plugin.json'),
+    claudeMdFile: join(out, 'CLAUDE.md'),
+    fileCount
+  };
 }
 
 /**
@@ -165,7 +172,14 @@ export function exportCursorPlugin(manifest, dir, outputDir) {
     fileCount++;
   }
 
-  return { target: 'cursor-plugin', outputDir: out, fileCount };
+  return {
+    target: 'cursor-plugin',
+    outputDir: out,
+    pluginDir: out,
+    manifestFile: join(pluginDir, 'plugin.json'),
+    cursorrulesFile: join(out, '.cursorrules'),
+    fileCount
+  };
 }
 
 /**
@@ -204,7 +218,14 @@ export function exportCodexPlugin(manifest, dir, outputDir) {
   writeFileSync(join(out, 'custom_instructions.txt'), chatGptInstructions, 'utf-8');
   fileCount++;
 
-  return { target: 'codex-plugin', outputDir: out, fileCount };
+  return {
+    target: 'codex-plugin',
+    outputDir: out,
+    pluginDir: out,
+    manifestFile: join(out, 'ai-plugin.json'),
+    agentsMdFile: join(out, 'AGENTS.md'),
+    fileCount
+  };
 }
 
 /**
@@ -221,6 +242,9 @@ export function exportAllPlugins(manifest, dir, outputDir) {
   return {
     target: 'plugins',
     outputDir: out,
+    claude: claudeRes,
+    cursor: cursorRes,
+    codex: codexRes,
     plugins: [claudeRes, cursorRes, codexRes],
     fileCount: claudeRes.fileCount + cursorRes.fileCount + codexRes.fileCount
   };

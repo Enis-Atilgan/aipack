@@ -54,35 +54,38 @@ export async function runCommand(target, options = {}) {
     // 3. Execution Dispatch
     const execConfig = manifest.execution;
     if (execConfig && execConfig.command) {
-      const workingDir = execConfig.cwd ? resolve(dir, execConfig.cwd) : resolve(options.cwd || '.');
+      const workingDir = execConfig.cwd
+        ? resolve(dir, execConfig.cwd)
+        : (options.cwd ? resolve(options.cwd) : dir);
       console.log(chalk.bold.green(`▶ Launching: ${chalk.cyan(execConfig.command)}`));
       console.log(chalk.dim(`Working directory: ${workingDir}`));
       console.log();
 
-      const child = spawn(execConfig.command, {
-        cwd: workingDir,
-        env: executionEnv,
-        shell: true,
-        stdio: 'inherit'
-      });
+      return new Promise((resolvePromise, rejectPromise) => {
+        const child = spawn(execConfig.command, {
+          cwd: workingDir,
+          env: executionEnv,
+          shell: true,
+          stdio: 'inherit'
+        });
 
-      child.on('error', (err) => {
-        log.error(`Execution failed: ${err.message}`);
-        process.exit(1);
-      });
+        child.on('error', (err) => {
+          log.error(`Execution failed: ${err.message}`);
+          rejectPromise(err);
+        });
 
-      child.on('close', (code) => {
-        if (code === 0) {
-          console.log();
-          log.success(`Process finished cleanly (exit code 0).`);
-        } else {
-          console.log();
-          log.error(`Process exited with code ${code}.`);
-          process.exit(code || 1);
-        }
+        child.on('close', (code) => {
+          if (code === 0) {
+            console.log();
+            log.success(`Process finished cleanly (exit code 0).`);
+            resolvePromise();
+          } else {
+            console.log();
+            log.error(`Process exited with code ${code}.`);
+            rejectPromise(new Error(`Process exited with code ${code}`));
+          }
+        });
       });
-
-      return;
     }
 
     // If no execution.command is defined, this is an IDE / Agent Orchestration Pack
