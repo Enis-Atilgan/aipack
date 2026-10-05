@@ -100,4 +100,94 @@ describe('Format Exporters (Claude, Cursor, ChatGPT)', () => {
     assert.equal(parsed.customModes[0].slug, 'security-auditor');
     assert.ok(parsed.customModes[0].groups.includes('command'));
   });
+
+  test('exportClaudePlugin generates official .claude-plugin/plugin.json and subagents', async () => {
+    const { exportClaudePlugin } = await import('../src/exporters/plugins.js');
+    const { join } = await import('path');
+    const { existsSync, readFileSync, rmSync, mkdirSync } = await import('fs');
+    const os = (await import('os')).default;
+
+    const tmpOut = join(os.tmpdir(), `claude-plugin-test-${Date.now()}`);
+    mkdirSync(tmpOut, { recursive: true });
+
+    const systemManifest = {
+      name: 'redteam-plugin',
+      version: '1.0.0',
+      description: 'Official Claude Code Red Team plugin bundle',
+      author: { name: 'gokboru' },
+      level: 'system',
+      agents: [
+        { id: 'recon', name: 'Recon', model_preference: 'fast', tools: ['Read', 'Bash'], persona: { instructions: 'Find ports.' } }
+      ],
+      tools: {
+        mcp_servers: [{ id: 'nmap', command: 'npx' }]
+      }
+    };
+
+    const res = exportClaudePlugin(systemManifest, '.', tmpOut);
+    assert.equal(res.target, 'claude-plugin');
+    assert.ok(existsSync(join(tmpOut, '.claude-plugin', 'plugin.json')));
+    assert.ok(existsSync(join(tmpOut, 'CLAUDE.md')));
+    assert.ok(existsSync(join(tmpOut, 'agents', 'recon.md')));
+    assert.ok(existsSync(join(tmpOut, '.mcp.json')));
+
+    const manifestJson = JSON.parse(readFileSync(join(tmpOut, '.claude-plugin', 'plugin.json'), 'utf-8'));
+    assert.equal(manifestJson.name, 'redteam-plugin');
+
+    rmSync(tmpOut, { recursive: true, force: true });
+  });
+
+  test('exportCursorPlugin generates official .cursor-plugin/plugin.json and modular rules', async () => {
+    const { exportCursorPlugin } = await import('../src/exporters/plugins.js');
+    const { join } = await import('path');
+    const { existsSync, readFileSync, rmSync, mkdirSync } = await import('fs');
+    const os = (await import('os')).default;
+
+    const tmpOut = join(os.tmpdir(), `cursor-plugin-test-${Date.now()}`);
+    mkdirSync(tmpOut, { recursive: true });
+
+    const systemManifest = {
+      name: 'cursor-pentest-plugin',
+      version: '1.0.0',
+      description: 'Official Cursor plugin bundle',
+      author: { name: 'gokboru' },
+      level: 'system',
+      agents: [
+        { id: 'lead', name: 'Lead', model_preference: 'smart', persona: { instructions: 'Coordinate.' } }
+      ]
+    };
+
+    const res = exportCursorPlugin(systemManifest, '.', tmpOut);
+    assert.equal(res.target, 'cursor-plugin');
+    assert.ok(existsSync(join(tmpOut, '.cursor-plugin', 'plugin.json')));
+    assert.ok(existsSync(join(tmpOut, '.cursorrules')));
+    assert.ok(existsSync(join(tmpOut, 'rules', 'lead.mdc')));
+
+    rmSync(tmpOut, { recursive: true, force: true });
+  });
+
+  test('exportCodexPlugin generates ai-plugin.json and AGENTS.md', async () => {
+    const { exportCodexPlugin } = await import('../src/exporters/plugins.js');
+    const { join } = await import('path');
+    const { existsSync, readFileSync, rmSync, mkdirSync } = await import('fs');
+    const os = (await import('os')).default;
+
+    const tmpOut = join(os.tmpdir(), `codex-plugin-test-${Date.now()}`);
+    mkdirSync(tmpOut, { recursive: true });
+
+    const manifest = {
+      name: 'codex-pentest-plugin',
+      version: '1.0.0',
+      description: 'OpenAI Codex compatible plugin bundle',
+      author: { name: 'gokboru' },
+      level: 'simple'
+    };
+
+    const res = exportCodexPlugin(manifest, '.', tmpOut);
+    assert.equal(res.target, 'codex-plugin');
+    assert.ok(existsSync(join(tmpOut, 'ai-plugin.json')));
+    assert.ok(existsSync(join(tmpOut, 'AGENTS.md')));
+
+    rmSync(tmpOut, { recursive: true, force: true });
+  });
 });
