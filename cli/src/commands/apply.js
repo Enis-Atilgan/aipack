@@ -6,6 +6,9 @@ import { runPreflight } from '../utils/preflight.js';
 import { getCredential, setCredential } from '../utils/credentials.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToCursor } from '../exporters/cursor.js';
+import { exportToAgentsMd } from '../exporters/agentsmd.js';
+import { exportToWindsurf } from '../exporters/windsurf.js';
+import { exportToRooModes } from '../exporters/roomodes.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -204,13 +207,20 @@ export async function applyCommand(path, options = {}) {
       writeFileSync(claudeMdPath, claudeMdContent, 'utf-8');
       console.log(`  ${chalk.green('✓')} Injected master protocol: ${chalk.cyan('CLAUDE.md')}`);
 
-      // Level 3: Subagents
+      // Level 3: Subagents (conforms to Claude Code 2026 isolated subprocess spec)
       if (manifest.level === 'system' && manifest.agents) {
         const agentsDir = join(targetDir, '.claude', 'agents');
         if (!existsSync(agentsDir)) mkdirSync(agentsDir, { recursive: true });
 
         for (const agent of manifest.agents) {
-          let agentContent = `# Agent: ${agent.name} (${agent.id})\n\n`;
+          const toolsStr = Array.isArray(agent.tools) && agent.tools.length > 0
+            ? agent.tools.join(', ')
+            : 'Read, Edit, Bash, Glob, Grep, Write';
+          const modelStr = agent.model_preference || 'inherit';
+          const descStr = (agent.description || agent.name).replace(/\n/g, ' ');
+
+          let agentContent = `---\nname: ${agent.id}\ndescription: ${descStr}\ntools: ${toolsStr}\nmodel: ${modelStr}\n---\n\n`;
+          agentContent += `# Agent: ${agent.name} (${agent.id})\n\n`;
           if (agent.description) agentContent += `${agent.description}\n\n`;
           if (agent.model_preference) agentContent += `**Model Preference:** ${agent.model_preference}\n\n`;
 
@@ -246,12 +256,20 @@ export async function applyCommand(path, options = {}) {
       console.log(`  ${chalk.green('✓')} Injected Cursor rules: ${chalk.cyan('.cursorrules')}`);
 
       // Level 3: Cursor modular rules (.cursor/rules/*.mdc)
+      // Anti-token blowout: only coordinator/entrypoint is alwaysApply: true, specialists are false with semantic descriptions
       if (manifest.level === 'system' && manifest.agents) {
         const cursorRulesDir = join(targetDir, '.cursor', 'rules');
         if (!existsSync(cursorRulesDir)) mkdirSync(cursorRulesDir, { recursive: true });
 
+        const entryAgentId = manifest.workflow?.entry;
         for (const agent of manifest.agents) {
-          let ruleContent = `---\ndescription: ${agent.description || agent.name}\nalwaysApply: true\n---\n\n`;
+          const isEntry = entryAgentId === agent.id;
+          const descStr = (agent.description || agent.name).replace(/\n/g, ' ');
+          const globsStr = agent.globs ? (Array.isArray(agent.globs) ? agent.globs.join(', ') : agent.globs) : '';
+
+          let ruleContent = `---\ndescription: ${descStr}\n`;
+          if (globsStr) ruleContent += `globs: ${globsStr}\n`;
+          ruleContent += `alwaysApply: ${isEntry ? 'true' : 'false'}\n---\n\n`;
           ruleContent += `# Agent: ${agent.name} (${agent.id})\n\n`;
           if (agent.model_preference) ruleContent += `**Model Tier:** \`${agent.model_preference}\`\n\n`;
 
@@ -282,6 +300,36 @@ export async function applyCommand(path, options = {}) {
         const cursorMcpPath = join(targetDir, '.cursor', 'mcp.json');
         mergeMcpConfig(cursorMcpPath, mcpServers);
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.cursor/mcp.json')}`);
+      }
+    }
+
+    // --- Universal AGENTS.md (Linux Foundation AAIF Standard) ---
+    if (targetClient === 'all' || targetClient === 'agentsmd') {
+      const agentsMdContent = exportToAgentsMd(manifest, dir);
+      const agentsMdPath = join(targetDir, 'AGENTS.md');
+      writeFileSync(agentsMdPath, agentsMdContent, 'utf-8');
+      console.log(`  ${chalk.green('✓')} Injected universal spec: ${chalk.cyan('AGENTS.md')} (Copilot/Zed/Aider/Codex)`);
+    }
+
+    // --- Windsurf Cascade Injection ---
+    if (targetClient === 'all' || targetClient === 'windsurf') {
+      const windsurfContent = exportToWindsurf(manifest, dir);
+      const windsurfPath = join(targetDir, '.windsurfrules');
+      writeFileSync(windsurfPath, windsurfContent, 'utf-8');
+      console.log(`  ${chalk.green('✓')} Injected Windsurf rules: ${chalk.cyan('.windsurfrules')}`);
+    }
+
+    // --- Roo-Code / Cline Injection ---
+    if (targetClient === 'all' || targetClient === 'roo' || targetClient === 'cline') {
+      const rooContent = exportToRooModes(manifest, dir);
+      const rooPath = join(targetDir, '.roomodes');
+      writeFileSync(rooPath, rooContent, 'utf-8');
+      console.log(`  ${chalk.green('✓')} Injected Roo/Cline modes: ${chalk.cyan('.roomodes')}`);
+
+      if (mcpServers.length > 0) {
+        const rooMcpPath = join(targetDir, '.roo', 'mcp.json');
+        mergeMcpConfig(rooMcpPath, mcpServers);
+        console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.roo/mcp.json')}`);
       }
     }
 

@@ -643,7 +643,10 @@ aipack clean <path|file>        # Enjekte edilen dosyaları ve MCP araçlarını
 # Platform export
 aipack export <path> --target cursor     # .cursorrules üret
 aipack export <path> --target claude     # CLAUDE.md üret
-aipack export <path> --target chatgpt   # custom_instructions.txt üret
+aipack export <path> --target chatgpt    # custom_instructions.txt üret
+aipack export <path> --target agentsmd   # AGENTS.md üret (Linux Foundation AAIF Standardı)
+aipack export <path> --target windsurf   # .windsurfrules üret (Cascade)
+aipack export <path> --target roo        # .roomodes üret (Roo-Code / Cline)
 ```
 
 ---

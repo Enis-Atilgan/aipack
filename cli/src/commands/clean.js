@@ -133,6 +133,51 @@ export async function cleanCommand(path, options = {}) {
       }
     }
 
+    // --- Clean AGENTS.md (Universal) ---
+    if (targetClient === 'all' || targetClient === 'agentsmd') {
+      const agentsMdPath = join(targetDir, 'AGENTS.md');
+      if (existsSync(agentsMdPath)) {
+        const content = readFileSync(agentsMdPath, 'utf-8');
+        const isPackGenerated = (content.includes('aipack') && content.includes(manifest.name)) || options.force;
+        if (isPackGenerated) {
+          unlinkSync(agentsMdPath);
+          console.log(`  ${chalk.red('✗ Removed:')} AGENTS.md`);
+          itemsCleaned++;
+        }
+      }
+    }
+
+    // --- Clean Windsurf ---
+    if (targetClient === 'all' || targetClient === 'windsurf') {
+      const windsurfPath = join(targetDir, '.windsurfrules');
+      if (existsSync(windsurfPath)) {
+        const content = readFileSync(windsurfPath, 'utf-8');
+        const isPackGenerated = (content.includes('Windsurf') && content.includes(manifest.name)) || options.force;
+        if (isPackGenerated) {
+          unlinkSync(windsurfPath);
+          console.log(`  ${chalk.red('✗ Removed:')} .windsurfrules`);
+          itemsCleaned++;
+        }
+      }
+    }
+
+    // --- Clean Roo-Code / Cline ---
+    if (targetClient === 'all' || targetClient === 'roo' || targetClient === 'cline') {
+      const rooModesPath = join(targetDir, '.roomodes');
+      if (existsSync(rooModesPath)) {
+        unlinkSync(rooModesPath);
+        console.log(`  ${chalk.red('✗ Removed:')} .roomodes`);
+        itemsCleaned++;
+      }
+      if (serverIds.length > 0) {
+        const removed = unmergeMcpConfig(join(targetDir, '.roo', 'mcp.json'), serverIds);
+        if (removed > 0) {
+          console.log(`  ${chalk.red('✗ Pruned:')} ${removed} servers from .roo/mcp.json`);
+          itemsCleaned += removed;
+        }
+      }
+    }
+
     console.log();
     if (itemsCleaned > 0) {
       log.success(`Cleaned ${itemsCleaned} items cleanly without touching unrelated project files.`);

@@ -4,12 +4,19 @@ import { loadManifest, validateManifest } from './validate.js';
 import { exportToCursor } from '../exporters/cursor.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToChatGPT } from '../exporters/chatgpt.js';
+import { exportToAgentsMd } from '../exporters/agentsmd.js';
+import { exportToWindsurf } from '../exporters/windsurf.js';
+import { exportToRooModes } from '../exporters/roomodes.js';
 import { log } from '../utils/logger.js';
 
 const EXPORTERS = {
   cursor: { fn: exportToCursor, defaultFile: '.cursorrules' },
   claude: { fn: exportToClaude, defaultFile: 'CLAUDE.md' },
   chatgpt: { fn: exportToChatGPT, defaultFile: 'custom_instructions.txt' },
+  agentsmd: { fn: exportToAgentsMd, defaultFile: 'AGENTS.md' },
+  windsurf: { fn: exportToWindsurf, defaultFile: '.windsurfrules' },
+  roo: { fn: exportToRooModes, defaultFile: '.roomodes' },
+  cline: { fn: exportToRooModes, defaultFile: '.roomodes' },
 };
 
 export async function exportCommand(path, options) {

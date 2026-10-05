@@ -136,6 +136,12 @@
           "name": { "type": "string" },
           "description": { "type": "string" },
           "model_preference": { "type": "string", "enum": ["fast", "balanced", "smart"] },
+          "globs": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
           "persona": { "$ref": "#/properties/persona" },
           "rules": { "$ref": "#/properties/rules" },
           "tools": { "$ref": "#/properties/tools" },
@@ -165,6 +171,8 @@
               "from": { "type": "string" },
               "to": { "type": "string" },
               "condition": { "type": "string" },
+              "type": { "type": "string", "enum": ["direct", "fan_out", "quality_gate"] },
+              "approval_required": { "type": "boolean" },
               "fallback": { "type": "boolean" }
             }
           }
@@ -281,6 +289,17 @@
               }
             }
           }
+        },
+        "sandbox": {
+          "type": "object",
+          "properties": {
+            "required": { "type": "boolean" },
+            "provider": { "type": "string", "enum": ["microvm", "docker", "wsl2", "e2b", "none"] },
+            "image": { "type": "string" },
+            "isolation_level": { "type": "string", "enum": ["hardware_microvm", "container", "process"] },
+            "network": { "type": "string", "enum": ["isolated", "outbound_only", "full"] },
+            "mounts": { "type": "array", "items": { "type": "string" } }
+          }
         }
       }
     },
@@ -289,7 +308,10 @@
       "properties": {
         "cursor": { "$ref": "#/$defs/exportTarget" },
         "claude": { "$ref": "#/$defs/exportTarget" },
-        "chatgpt": { "$ref": "#/$defs/exportTarget" }
+        "chatgpt": { "$ref": "#/$defs/exportTarget" },
+        "agentsmd": { "$ref": "#/$defs/exportTarget" },
+        "windsurf": { "$ref": "#/$defs/exportTarget" },
+        "roo": { "$ref": "#/$defs/exportTarget" }
       }
     }
   },

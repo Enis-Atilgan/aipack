@@ -3,6 +3,7 @@ import { resolve, join } from 'path';
 import { loadManifestAsync } from './validate.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToCursor } from '../exporters/cursor.js';
+import { exportToAgentsMd } from '../exporters/agentsmd.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -109,6 +110,23 @@ export async function diffCommand(path, options = {}) {
       if (manifest.tools?.mcp_servers && manifest.tools.mcp_servers.length > 0) {
         console.log(chalk.cyan(`[MCP MERGE] .cursor/mcp.json (+${manifest.tools.mcp_servers.length} servers)`));
         changesFound = true;
+      }
+    }
+
+    // --- AGENTS.md Universal Inspection ---
+    if (targetClient === 'all' || targetClient === 'agentsmd') {
+      const agentsMdPath = join(targetDir, 'AGENTS.md');
+      const expectedAgents = exportToAgentsMd(manifest, dir);
+      const existingAgents = existsSync(agentsMdPath) ? readFileSync(agentsMdPath, 'utf-8') : null;
+
+      if (!existingAgents) {
+        changesFound = true;
+        console.log(chalk.green(`[CREATE] AGENTS.md (${expectedAgents.length} characters)`));
+      } else if (existingAgents !== expectedAgents) {
+        changesFound = true;
+        console.log(chalk.yellow(`[MODIFY] AGENTS.md`));
+      } else {
+        console.log(chalk.dim(`[UNCHANGED] AGENTS.md`));
       }
     }
 

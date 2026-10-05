@@ -75,4 +75,29 @@ describe('Format Exporters (Claude, Cursor, ChatGPT)', () => {
     assert.ok(cursorResult.includes('Task Routing Logic'));
     assert.ok(cursorResult.includes('Route from `lead` to `recon`'));
   });
+
+  test('exportToAgentsMd generates AAIF compliant universal markdown', async () => {
+    const { exportToAgentsMd } = await import('../src/exporters/agentsmd.js');
+    const result = exportToAgentsMd(sampleManifest, '.');
+    assert.ok(result.includes('# AGENTS.md'));
+    assert.ok(result.includes('Linux Foundation AAIF Specification'));
+    assert.ok(result.includes('AppSec Engineer'));
+    assert.ok(result.includes('Always specify CWE numbers'));
+  });
+
+  test('exportToWindsurf generates valid Cascade rules', async () => {
+    const { exportToWindsurf } = await import('../src/exporters/windsurf.js');
+    const result = exportToWindsurf(sampleManifest, '.');
+    assert.ok(result.includes('Windsurf Cascade Rules'));
+    assert.ok(result.includes('AppSec Engineer'));
+  });
+
+  test('exportToRooModes generates valid .roomodes JSON configuration', async () => {
+    const { exportToRooModes } = await import('../src/exporters/roomodes.js');
+    const result = exportToRooModes(sampleManifest, '.');
+    const parsed = JSON.parse(result);
+    assert.ok(Array.isArray(parsed.customModes));
+    assert.equal(parsed.customModes[0].slug, 'security-auditor');
+    assert.ok(parsed.customModes[0].groups.includes('command'));
+  });
 });
