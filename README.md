@@ -84,24 +84,38 @@ npm install -g aipack
 aipack init my-security-team --level system --category security
 ```
 
-### 3. Validate Format & Syntax
+### 3. Inspect Pack Dossier
+```bash
+aipack info ./my-security-team
+# Or directly inspect an archive:
+aipack info my-security-team.aipack
+```
+
+### 4. Validate Format & Semantic Logic
 ```bash
 aipack validate ./my-security-team
 ```
 
-### 4. Compile into an `.aipack` Container
+### 5. Preview Changes Non-Destructively
 ```bash
-aipack pack ./my-security-team
-# Output: my-security-team.aipack (ZIP container)
+aipack diff ./my-security-team --cwd ./my-project
 ```
 
-### 5. Export to Target Client
+### 6. Turnkey Provisioning (Pre-Flight & Injection)
 ```bash
-# Generate Cursor rules
-aipack export ./my-security-team --target cursor
+# Interactive secret prompt + auto-install dependencies
+aipack apply my-security-team.aipack --cwd ./my-project -i --auto-install
+```
 
-# Generate Claude Code architecture
-aipack export ./my-security-team --target claude
+### 7. Safely Remove / De-Provision
+```bash
+aipack clean ./my-security-team --cwd ./my-project
+```
+
+### 8. Compile into `.aipack` Container
+```bash
+aipack pack ./my-security-team
+# Output: my-security-team-1.0.0.aipack (ZIP container)
 ```
 
 ---
