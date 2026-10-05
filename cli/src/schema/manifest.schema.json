@@ -178,6 +178,112 @@
         }
       }
     },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "object",
+          "properties": {
+            "os": { "type": "array", "items": { "type": "string", "enum": ["darwin", "linux", "win32"] } },
+            "arch": { "type": "array", "items": { "type": "string", "enum": ["arm64", "x64", "ia32"] } },
+            "min_ram_gb": { "type": "number", "minimum": 1 },
+            "gpu": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["metal", "cuda", "rocm", "any"] },
+                "required": { "type": "boolean" }
+              }
+            }
+          }
+        },
+        "runtimes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "min_version": { "type": "string" },
+              "version_command": { "type": "string" }
+            }
+          }
+        },
+        "binaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "min_version": { "type": "string" },
+              "version_command": { "type": "string" },
+              "install": {
+                "type": "object",
+                "properties": {
+                  "brew": { "type": "string" },
+                  "apt": { "type": "string" },
+                  "winget": { "type": "string" },
+                  "npm": { "type": "string" },
+                  "pip": { "type": "string" },
+                  "cargo": { "type": "string" },
+                  "manual": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "probe_command": { "type": "string" },
+              "probe_url": { "type": "string", "format": "uri" },
+              "auto_start": {
+                "oneOf": [
+                  { "type": "string" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "darwin": { "type": "string" },
+                      "linux": { "type": "string" },
+                      "win32": { "type": "string" }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+              "label": { "type": "string" },
+              "description": { "type": "string" },
+              "required": { "type": "boolean" },
+              "validation_regex": { "type": "string" },
+              "test_endpoint": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": { "type": "string", "format": "uri" },
+                  "method": { "type": "string", "enum": ["GET", "POST", "HEAD"] },
+                  "auth_header": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "exports": {
       "type": "object",
       "properties": {

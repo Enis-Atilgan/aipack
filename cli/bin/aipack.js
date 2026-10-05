@@ -9,6 +9,7 @@ import { validateCommand } from '../src/commands/validate.js';
 import { exportCommand } from '../src/commands/export.js';
 import { packCommand } from '../src/commands/pack.js';
 import { unpackCommand } from '../src/commands/unpack.js';
+import { applyCommand } from '../src/commands/apply.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,5 +52,15 @@ program
   .description('Unpack .aipack file into directory')
   .option('-o, --output <dir>', 'Output directory')
   .action(unpackCommand);
+
+program
+  .command('apply [path]')
+  .description('Audit pre-flight requirements and provision agent system into target clients')
+  .option('-t, --target <client>', 'Target client: all, claude, cursor', 'all')
+  .option('-c, --cwd <dir>', 'Target project directory to provision', '.')
+  .option('--auto-install', 'Attempt automatic installation of missing dependencies via package manager')
+  .option('--auto-start', 'Attempt to automatically start inactive background services')
+  .option('-f, --force', 'Force provisioning even if platform checks warn')
+  .action(applyCommand);
 
 program.parse();

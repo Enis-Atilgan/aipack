@@ -1,0 +1,236 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { resolve, join } from 'path';
+import { execSync } from 'child_process';
+import { loadManifest, validateManifest, runSemanticChecks } from './validate.js';
+import { runPreflight } from '../utils/preflight.js';
+import { getCredential, setCredential } from '../utils/credentials.js';
+import { exportToClaude } from '../exporters/claude.js';
+import { exportToCursor } from '../exporters/cursor.js';
+import { log } from '../utils/logger.js';
+import chalk from 'chalk';
+
+/**
+ * Merge new MCP servers into an existing MCP configuration file without overwriting existing servers.
+ */
+function mergeMcpConfig(filePath, newServers) {
+  let existing = { mcpServers: {} };
+  if (existsSync(filePath)) {
+    try {
+      existing = JSON.parse(readFileSync(filePath, 'utf-8'));
+      if (!existing.mcpServers) existing.mcpServers = {};
+    } catch {
+      existing = { mcpServers: {} };
+    }
+  }
+
+  for (const server of newServers) {
+    existing.mcpServers[server.id || server.name] = {
+      command: server.command || server.source || 'npx',
+      args: server.args || [],
+      env: server.env || server.config || {},
+    };
+  }
+
+  const dir = resolve(filePath, '..');
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
+}
+
+export async function applyCommand(path, options = {}) {
+  try {
+    const { manifest, dir } = loadManifest(path);
+    const targetDir = resolve(options.cwd || '.');
+    const targetClient = (options.target || 'all').toLowerCase();
+
+    if (!existsSync(targetDir)) {
+      mkdirSync(targetDir, { recursive: true });
+    }
+
+    console.log();
+    console.log(chalk.bold.cyan(`🐺 AIPack Universal Provisioning Engine`));
+    console.log(chalk.dim(`Applying: ${manifest.name} (v${manifest.version}) [Level: ${manifest.level.toUpperCase()}]`));
+    console.log(chalk.dim(`Target directory: ${targetDir}`));
+    console.log();
+
+    // 1. Validation
+    const valResult = validateManifest(manifest);
+    if (!valResult.valid) {
+      log.error('Manifest schema validation failed:');
+      for (const err of valResult.errors) {
+        console.log(`  - ${err.instancePath || '/'}: ${err.message}`);
+      }
+      process.exit(1);
+    }
+
+    const { errors: semErrors, warnings: semWarnings } = runSemanticChecks(manifest, dir);
+    if (semErrors.length > 0) {
+      log.error('Semantic validation failed:');
+      for (const e of semErrors) console.log(`  - ${e}`);
+      process.exit(1);
+    }
+    if (semWarnings.length > 0) {
+      for (const w of semWarnings) log.warn(w);
+    }
+
+    // 2. Pre-Flight Audit
+    log.heading('Pre-Flight System Audit');
+    const preflight = await runPreflight(manifest);
+
+    log.item('Host OS', `${preflight.host.platform} (${preflight.host.arch})`);
+    log.item('RAM Available', `${preflight.host.totalRamGb} GB`);
+    log.item('Package Managers', preflight.host.pkgManagers.join(', ') || 'None detected');
+
+    // Platform compatibility
+    if (!preflight.platform.ok) {
+      for (const err of preflight.platform.errors) {
+        log.error(`Platform Check: ${err}`);
+      }
+      if (!options.force) {
+        log.error('Aborting due to platform incompatibility. Use --force to override.');
+        process.exit(1);
+      }
+    } else {
+      console.log(chalk.green(`  ✓ Platform compatibility verified`));
+    }
+
+    // Binaries & Runtimes
+    if (preflight.binaries.length > 0) {
+      console.log(chalk.bold('\n  Dependencies:'));
+      for (const b of preflight.binaries) {
+        if (b.installed) {
+          const vStr = b.version ? chalk.dim(` (${b.version})`) : '';
+          console.log(`  ${chalk.green('✓')} ${chalk.bold(b.name)}${vStr}`);
+        } else {
+          console.log(`  ${chalk.red('✗')} ${chalk.bold(b.name)} - ${chalk.yellow('NOT INSTALLED')}`);
+          if (b.suggestedInstallCmd) {
+            console.log(chalk.dim(`    Suggested install: ${chalk.cyan(b.suggestedInstallCmd)}`));
+            if (options.autoInstall) {
+              log.info(`Executing auto-install: ${b.suggestedInstallCmd}`);
+              try {
+                execSync(b.suggestedInstallCmd, { stdio: 'inherit' });
+                console.log(chalk.green(`    ✓ Successfully installed ${b.name}`));
+              } catch (e) {
+                log.error(`Auto-install failed: ${e.message}`);
+              }
+            }
+          } else if (b.manualUrl) {
+            console.log(chalk.dim(`    Download manual: ${b.manualUrl}`));
+          }
+        }
+      }
+    }
+
+    // Services
+    if (preflight.services.length > 0) {
+      console.log(chalk.bold('\n  Services & Daemons:'));
+      for (const s of preflight.services) {
+        if (s.active) {
+          console.log(`  ${chalk.green('✓')} ${chalk.bold(s.name)} (active)`);
+        } else {
+          console.log(`  ${chalk.red('✗')} ${chalk.bold(s.name)} - ${chalk.yellow('INACTIVE')}`);
+          if (s.autoStartCmd) {
+            console.log(chalk.dim(`    Start command: ${chalk.cyan(s.autoStartCmd)}`));
+            if (options.autoStart) {
+              log.info(`Starting service: ${s.autoStartCmd}`);
+              try {
+                execSync(s.autoStartCmd, { stdio: 'inherit' });
+              } catch (e) {
+                log.error(`Failed to start service: ${e.message}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Secrets & Credentials
+    if (preflight.secrets.length > 0) {
+      console.log(chalk.bold('\n  Secrets & Credentials:'));
+      for (const sec of preflight.secrets) {
+        const stored = getCredential(sec.id);
+        if (stored) {
+          console.log(`  ${chalk.green('✓')} ${chalk.bold(sec.id)} (resolved from OS Keychain/Env)`);
+        } else if (sec.required) {
+          console.log(`  ${chalk.red('✗')} ${chalk.bold(sec.id)} (${sec.label}) - ${chalk.yellow('MISSING')}`);
+          if (options.interactive) {
+            // Interactive prompt could be plugged here
+            console.log(chalk.dim(`    Set with: export ${sec.id}="value"`));
+          }
+        } else {
+          console.log(`  ${chalk.dim('○')} ${chalk.dim(sec.id)} (optional)`);
+        }
+      }
+    }
+
+    console.log();
+
+    // 3. Client Injection
+    log.heading('Provisioning AI Runtimes');
+
+    const mcpServers = manifest.tools?.mcp_servers || [];
+
+    // --- Claude Code / Desktop Injection ---
+    if (targetClient === 'all' || targetClient === 'claude') {
+      const claudeMdContent = exportToClaude(manifest, dir);
+      const claudeMdPath = join(targetDir, 'CLAUDE.md');
+      writeFileSync(claudeMdPath, claudeMdContent, 'utf-8');
+      console.log(`  ${chalk.green('✓')} Injected master protocol: ${chalk.cyan('CLAUDE.md')}`);
+
+      // Level 3: Subagents
+      if (manifest.level === 'system' && manifest.agents) {
+        const agentsDir = join(targetDir, '.claude', 'agents');
+        if (!existsSync(agentsDir)) mkdirSync(agentsDir, { recursive: true });
+
+        for (const agent of manifest.agents) {
+          let agentContent = `# Agent: ${agent.name} (${agent.id})\n\n`;
+          if (agent.description) agentContent += `${agent.description}\n\n`;
+          if (agent.model_preference) agentContent += `**Model Preference:** ${agent.model_preference}\n\n`;
+
+          if (agent.persona?.file) {
+            try {
+              agentContent += readFileSync(join(dir, agent.persona.file), 'utf-8');
+            } catch {
+              agentContent += agent.persona.instructions || '';
+            }
+          } else if (agent.persona?.instructions) {
+            agentContent += agent.persona.instructions;
+          }
+
+          const agentFile = join(agentsDir, `${agent.id}.md`);
+          writeFileSync(agentFile, agentContent, 'utf-8');
+          console.log(`  ${chalk.green('✓')} Injected subagent: ${chalk.cyan(`.claude/agents/${agent.id}.md`)}`);
+        }
+      }
+
+      // MCP config for Claude
+      if (mcpServers.length > 0) {
+        const claudeMcpPath = join(targetDir, '.claude', 'settings.json');
+        mergeMcpConfig(claudeMcpPath, mcpServers);
+        console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.claude/settings.json')}`);
+      }
+    }
+
+    // --- Cursor Injection ---
+    if (targetClient === 'all' || targetClient === 'cursor') {
+      const cursorRulesContent = exportToCursor(manifest, dir);
+      const cursorRulesPath = join(targetDir, '.cursorrules');
+      writeFileSync(cursorRulesPath, cursorRulesContent, 'utf-8');
+      console.log(`  ${chalk.green('✓')} Injected Cursor rules: ${chalk.cyan('.cursorrules')}`);
+
+      // MCP config for Cursor
+      if (mcpServers.length > 0) {
+        const cursorMcpPath = join(targetDir, '.cursor', 'mcp.json');
+        mergeMcpConfig(cursorMcpPath, mcpServers);
+        console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.cursor/mcp.json')}`);
+      }
+    }
+
+    console.log();
+    log.success(`Turnkey provisioning complete! Your agent system is ready.`);
+    console.log();
+
+  } catch (err) {
+    log.error(err.message);
+    process.exit(1);
+  }
+}
