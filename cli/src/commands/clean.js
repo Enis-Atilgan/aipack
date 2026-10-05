@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, unlinkSync, rmdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, rmdirSync, rmSync } from 'fs';
 import { resolve, join } from 'path';
 import os from 'os';
 import { loadManifest } from './validate.js';
@@ -217,6 +217,35 @@ export async function cleanCommand(path, options = {}) {
           }
         } catch {}
       }
+    }
+
+    // --- Clean Agent Skills ---
+    if (manifest.skills && Array.isArray(manifest.skills)) {
+      for (const skill of manifest.skills) {
+        const skillName = skill.name || skill.id;
+        const targetSkillDir = join(targetDir, 'skills', skillName);
+        if (existsSync(targetSkillDir)) {
+          rmSync(targetSkillDir, { recursive: true, force: true });
+          console.log(`  ${chalk.red('✗ Removed skill:')} skills/${skillName}`);
+          itemsCleaned++;
+        }
+      }
+      const rootSkillsDir = join(targetDir, 'skills');
+      try {
+        if (existsSync(rootSkillsDir)) rmdirSync(rootSkillsDir);
+      } catch {}
+    }
+
+    // --- Clean Knowledge Base ---
+    const targetKnowledgeDir = join(targetDir, '.packai', 'knowledge');
+    if (existsSync(targetKnowledgeDir)) {
+      rmSync(targetKnowledgeDir, { recursive: true, force: true });
+      console.log(`  ${chalk.red('✗ Removed knowledge:')} .packai/knowledge/`);
+      itemsCleaned++;
+      try {
+        const packaiDir = join(targetDir, '.packai');
+        if (existsSync(packaiDir)) rmdirSync(packaiDir);
+      } catch {}
     }
 
     console.log();

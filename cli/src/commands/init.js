@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync, cpSync, statSync } from 'fs';
 import { join, resolve, basename } from 'path';
 import YAML from 'yaml';
 import chalk from 'chalk';
@@ -303,6 +303,89 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
     }
   }
 
+  // Also check Roo-Code / Cline custom modes (.roomodes or .cline/roomodes)
+  const rooModesPath = existsSync(join(src, '.roomodes'))
+    ? join(src, '.roomodes')
+    : (existsSync(join(src, '.cline', 'roomodes')) ? join(src, '.cline', 'roomodes') : null);
+  if (rooModesPath) {
+    try {
+      const parsed = JSON.parse(readFileSync(rooModesPath, 'utf-8'));
+      if (Array.isArray(parsed.customModes)) {
+        for (const mode of parsed.customModes) {
+          const agentId = (mode.slug || mode.name || 'custom-mode').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+          if (detectedAgents.some(a => a.id === agentId)) continue;
+          detectedAgents.push({
+            id: agentId,
+            name: mode.name || agentId,
+            description: mode.roleDefinition || `Specialist agent for ${mode.name}`,
+            model_preference: 'smart',
+            tools: mode.groups || [],
+            instructions: (mode.customInstructions || mode.roleDefinition || '').trim()
+          });
+        }
+      }
+    } catch {}
+  }
+
+  // Also check CrewAI agents (config/agents.yaml or agents.yaml)
+  let crewAiDetected = false;
+  const crewAiPath = existsSync(join(src, 'config', 'agents.yaml'))
+    ? join(src, 'config', 'agents.yaml')
+    : (existsSync(join(src, 'agents.yaml')) ? join(src, 'agents.yaml') : null);
+  if (crewAiPath) {
+    try {
+      const parsed = YAML.parse(readFileSync(crewAiPath, 'utf-8'));
+      if (parsed && typeof parsed === 'object') {
+        crewAiDetected = true;
+        for (const [agentKey, aData] of Object.entries(parsed)) {
+          if (aData && typeof aData === 'object') {
+            const agentId = agentKey.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            if (detectedAgents.some(a => a.id === agentId)) continue;
+            const role = aData.role || agentKey;
+            const goal = aData.goal || '';
+            const backstory = aData.backstory || '';
+            const instructions = `# ${role}\n\n**Goal:** ${goal}\n\n**Backstory:**\n${backstory}\n`;
+            detectedAgents.push({
+              id: agentId,
+              name: role,
+              description: goal || (backstory ? backstory.slice(0, 100) : `CrewAI Agent ${agentKey}`),
+              model_preference: 'smart',
+              instructions: instructions.trim()
+            });
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Inspect Agent Skills (skills/<name>/SKILL.md or .claude/skills/<name>/SKILL.md)
+  const detectedSkills = [];
+  const skillsDirsToCheck = [join(src, 'skills'), join(src, '.claude', 'skills')];
+  for (const sDir of skillsDirsToCheck) {
+    if (existsSync(sDir) && statSync(sDir).isDirectory()) {
+      try {
+        const entries = readdirSync(sDir, { withFileTypes: true });
+        for (const ent of entries) {
+          if (ent.isDirectory()) {
+            const skillFile = join(sDir, ent.name, 'SKILL.md');
+            if (existsSync(skillFile)) {
+              detectedSkills.push({
+                name: ent.name,
+                sourceDir: join(sDir, ent.name)
+              });
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // Inspect Knowledge directory
+  let knowledgeSrcDir = null;
+  if (existsSync(join(src, 'knowledge')) && statSync(join(src, 'knowledge')).isDirectory()) {
+    knowledgeSrcDir = join(src, 'knowledge');
+  }
+
   // 3. Inspect MCP Tools & Extract Secrets / Binaries
   const detectedMcpServers = {};
   const detectedSecrets = new Set();
@@ -347,7 +430,7 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
     }
   }
 
-  // 4. Project ecosystem inspection
+  // 4. Project ecosystem inspection & execution command detection
   if (existsSync(join(src, 'package.json'))) {
     detectedBinaries.add('node');
   }
@@ -356,6 +439,22 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
   }
   if (existsSync(join(src, 'Dockerfile')) || existsSync(join(src, 'docker-compose.yml'))) {
     detectedServices.add('docker');
+  }
+
+  let detectedExecution = undefined;
+  if (crewAiDetected || existsSync(join(src, 'crew.py'))) {
+    detectedExecution = { command: 'python -m crewai run' };
+    detectedBinaries.add('python3');
+  } else if (existsSync(join(src, 'main.py'))) {
+    detectedExecution = { command: 'python main.py' };
+    detectedBinaries.add('python3');
+  } else if (existsSync(join(src, 'package.json'))) {
+    try {
+      const pJson = JSON.parse(readFileSync(join(src, 'package.json'), 'utf-8'));
+      if (pJson.scripts?.start) {
+        detectedExecution = { command: 'npm start' };
+      }
+    } catch {}
   }
 
   // 5. Determine level & workflow
@@ -383,7 +482,7 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
         max_history_messages: 20
       }
     };
-  } else if (Object.keys(detectedMcpServers).length > 0 || detectedAgents.length === 1) {
+  } else if (Object.keys(detectedMcpServers).length > 0 || detectedAgents.length === 1 || detectedSkills.length > 0) {
     level = 'enhanced';
   }
 
@@ -437,6 +536,29 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
     manifest.workflow = workflow;
   }
 
+  if (detectedSkills.length > 0) {
+    manifest.skills = detectedSkills.map(s => ({
+      name: s.name,
+      path: `./skills/${s.name}/SKILL.md`
+    }));
+  }
+
+  if (knowledgeSrcDir) {
+    manifest.knowledge = [
+      {
+        name: 'workspace-knowledge',
+        description: 'Shared knowledge base reverse-engineered from workspace',
+        type: 'embedded',
+        path: './knowledge',
+        format: 'markdown'
+      }
+    ];
+  }
+
+  if (detectedExecution) {
+    manifest.execution = detectedExecution;
+  }
+
   // 7. Write to Target Pack Directory
   mkdirSync(targetDir, { recursive: true });
 
@@ -468,6 +590,22 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
     }
   }
 
+  // Copy detected skills
+  if (detectedSkills.length > 0) {
+    const targetSkillsDir = join(targetDir, 'skills');
+    mkdirSync(targetSkillsDir, { recursive: true });
+    for (const skill of detectedSkills) {
+      cpSync(skill.sourceDir, join(targetSkillsDir, skill.name), { recursive: true });
+    }
+  }
+
+  // Copy detected knowledge
+  if (knowledgeSrcDir) {
+    const targetKnowledgeDir = join(targetDir, 'knowledge');
+    mkdirSync(targetKnowledgeDir, { recursive: true });
+    cpSync(knowledgeSrcDir, targetKnowledgeDir, { recursive: true });
+  }
+
   // Write README.md
   const readme = `# ${manifest.name}\n\n${manifest.description}\n\n## Quick Start\n\n\`\`\`bash\n# Validate pack\npackai validate ./${basename(targetDir)}\n\n# Pack bundle\npackai pack ./${basename(targetDir)}\n\n# Provision onto any machine\npackai apply ./${manifest.name}-1.0.0.packai\n\`\`\`\n`;
   writeFileSync(join(targetDir, 'README.md'), readme, 'utf-8');
@@ -478,9 +616,13 @@ export async function initFromExisting(sourceDir, packName, options = {}) {
   log.item('Pack Level', level.toUpperCase());
   log.item('Base Rules', sourceRuleType || 'Generated default AGENTS.md');
   log.item('Agents Discovered', detectedAgents.length > 0 ? detectedAgents.map(a => a.id).join(', ') : 'None (single agent)');
+  log.item('Agent Skills', detectedSkills.length > 0 ? detectedSkills.map(s => s.name).join(', ') : 'None');
   log.item('MCP Servers', Object.keys(detectedMcpServers).length > 0 ? Object.keys(detectedMcpServers).join(', ') : 'None');
   log.item('Binaries Required', Array.from(detectedBinaries).join(', ') || 'None');
   log.item('Secrets Detected', Array.from(detectedSecrets).join(', ') || 'None');
+  if (detectedExecution) {
+    log.item('Execution Command', chalk.cyan(detectedExecution.command));
+  }
   console.log();
   log.dim('Next steps:');
   log.dim(`  1. cd ${basename(targetDir)}`);

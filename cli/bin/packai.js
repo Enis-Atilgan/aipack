@@ -13,6 +13,7 @@ import { applyCommand } from '../src/commands/apply.js';
 import { diffCommand } from '../src/commands/diff.js';
 import { cleanCommand } from '../src/commands/clean.js';
 import { infoCommand } from '../src/commands/info.js';
+import { runCommand } from '../src/commands/run.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -87,5 +88,12 @@ program
   .command('info [path]')
   .description('Inspect detailed dossier of a .packai archive or pack directory')
   .action(infoCommand);
+
+program
+  .command('run [target]')
+  .description('Audit pre-flight requirements and launch standalone framework execution runner')
+  .option('-c, --cwd <dir>', 'Working directory', '.')
+  .option('-f, --force', 'Force execution even if platform/binary checks warn')
+  .action(runCommand);
 
 program.parse();

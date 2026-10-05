@@ -314,6 +314,28 @@
         }
       }
     },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "command": { "type": "string" },
+        "entrypoint": { "type": "string" },
+        "env": { "type": "object" },
+        "cwd": { "type": "string" },
+        "timeout_seconds": { "type": "integer" }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    },
     "exports": {
       "type": "object",
       "properties": {

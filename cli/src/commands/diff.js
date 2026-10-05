@@ -194,6 +194,19 @@ export async function diffCommand(path, options = {}) {
       }
     }
 
+    // --- Skills & Knowledge Preview ---
+    if (manifest.skills && Array.isArray(manifest.skills) && manifest.skills.length > 0) {
+      console.log(chalk.green(`[SKILLS PROVISION] skills/ (+${manifest.skills.length} agent skills)`));
+      changesFound = true;
+    }
+    if (existsSync(join(dir, 'knowledge'))) {
+      console.log(chalk.green(`[KNOWLEDGE PROVISION] .packai/knowledge/`));
+      changesFound = true;
+    }
+    if (manifest.execution?.command) {
+      console.log(chalk.cyan(`[EXECUTION READY] Command: "${manifest.execution.command}" (run via packai run)`));
+    }
+
     console.log();
     if (changesFound) {
       console.log(chalk.dim(`Run "packai apply" to write these changes to disk.`));

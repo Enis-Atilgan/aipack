@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from 'fs';
 import { resolve, join } from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
@@ -367,6 +367,46 @@ export async function applyCommand(path, options = {}) {
         writeFileSync(opencodePath, JSON.stringify(existing, null, 2), 'utf-8');
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('opencode.json')}`);
       }
+    }
+
+    // --- Agent Skills Provisioning (Linux Foundation AAIF & Anthropic standard) ---
+    const packSkillsDir = join(dir, 'skills');
+    if (existsSync(packSkillsDir) && statSync(packSkillsDir).isDirectory()) {
+      try {
+        const skillsEntries = readdirSync(packSkillsDir, { withFileTypes: true });
+        let skillsCount = 0;
+        for (const sEnt of skillsEntries) {
+          if (sEnt.isDirectory()) {
+            const destSkillDir = join(targetDir, 'skills', sEnt.name);
+            mkdirSync(destSkillDir, { recursive: true });
+            cpSync(join(packSkillsDir, sEnt.name), destSkillDir, { recursive: true });
+            skillsCount++;
+          }
+        }
+        if (skillsCount > 0) {
+          console.log(`  ${chalk.green('✓')} Injected ${skillsCount} Agent Skills into: ${chalk.cyan('skills/')}`);
+        }
+      } catch (err) {
+        log.warn(`Could not provision skills: ${err.message}`);
+      }
+    }
+
+    // --- Knowledge Base Provisioning ---
+    const packKnowledgeDir = join(dir, 'knowledge');
+    if (existsSync(packKnowledgeDir) && statSync(packKnowledgeDir).isDirectory()) {
+      try {
+        const destKnowledgeDir = join(targetDir, '.packai', 'knowledge');
+        mkdirSync(destKnowledgeDir, { recursive: true });
+        cpSync(packKnowledgeDir, destKnowledgeDir, { recursive: true });
+        console.log(`  ${chalk.green('✓')} Injected Knowledge Base into: ${chalk.cyan('.packai/knowledge/')}`);
+      } catch (err) {
+        log.warn(`Could not provision knowledge: ${err.message}`);
+      }
+    }
+
+    // --- Framework Execution Trigger Notice ---
+    if (manifest.execution?.command) {
+      console.log(`  ${chalk.cyan('ℹ')} Framework Execution Trigger: run with ${chalk.bold.yellow('packai run')}`);
     }
 
     console.log();
