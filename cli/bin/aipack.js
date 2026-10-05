@@ -61,6 +61,7 @@ program
   .description('Audit pre-flight requirements and provision agent system into target clients')
   .option('-t, --target <client>', 'Target client: all, claude, cursor', 'all')
   .option('-c, --cwd <dir>', 'Target project directory to provision', '.')
+  .option('-i, --interactive', 'Interactively prompt for missing secrets and save to OS Keychain')
   .option('--auto-install', 'Attempt automatic installation of missing dependencies via package manager')
   .option('--auto-start', 'Attempt to automatically start inactive background services')
   .option('-f, --force', 'Force provisioning even if platform checks warn')

@@ -149,14 +149,40 @@ export async function applyCommand(path, options = {}) {
     if (preflight.secrets.length > 0) {
       console.log(chalk.bold('\n  Secrets & Credentials:'));
       for (const sec of preflight.secrets) {
-        const stored = getCredential(sec.id);
+        let stored = getCredential(sec.id);
         if (stored) {
           console.log(`  ${chalk.green('✓')} ${chalk.bold(sec.id)} (resolved from OS Keychain/Env)`);
         } else if (sec.required) {
           console.log(`  ${chalk.red('✗')} ${chalk.bold(sec.id)} (${sec.label}) - ${chalk.yellow('MISSING')}`);
           if (options.interactive) {
-            // Interactive prompt could be plugged here
-            console.log(chalk.dim(`    Set with: export ${sec.id}="value"`));
+            try {
+              const rl = (await import('readline/promises')).default.createInterface({
+                input: process.stdin,
+                output: process.stdout,
+              });
+              const answer = await rl.question(chalk.cyan(`    [?] Enter value for ${sec.label || sec.id}: `));
+              rl.close();
+
+              if (answer && answer.trim()) {
+                const val = answer.trim();
+                let valid = true;
+                if (sec.validation_regex) {
+                  const rx = new RegExp(sec.validation_regex);
+                  if (!rx.test(val)) {
+                    log.error(`    Invalid format according to pattern: ${sec.validation_regex}`);
+                    valid = false;
+                  }
+                }
+                if (valid) {
+                  setCredential(sec.id, val);
+                  console.log(chalk.green(`    ✓ Successfully saved ${sec.id} to OS Keychain!`));
+                }
+              }
+            } catch {
+              // TTY error or input cancelled
+            }
+          } else {
+            console.log(chalk.dim(`    Set with: export ${sec.id}="value" (or run with -i to prompt)`));
           }
         } else {
           console.log(`  ${chalk.dim('○')} ${chalk.dim(sec.id)} (optional)`);
