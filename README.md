@@ -1,14 +1,15 @@
 <div align="center">
 
 # 🐺 AIPACK (`.aipack`)
-### Docker & App Store for Turnkey AI Agent Systems
+### Standards-First Bundle, Pre-Flight Provisioning & Cross-Client Distribution Layer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-cyan.svg)](https://nodejs.org)
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-purple.svg)](https://nextjs.org)
 [![Status](https://img.shields.io/badge/Status-Active%20Development-amber.svg)](#)
 
-**A universal package format, pre-flight provisioning engine, and marketplace for distributing, installing, and synchronizing AI agent architectures across platforms.**
+**A standards-first bundle, pre-flight provisioning engine, and cross-client distribution layer for AI agent systems.**  
+*Packages Linux Foundation `AGENTS.md`, Anthropic `MCP`, and `SKILL.md` into turnkey verified bundles.*
 
 [Quick Start](#-quick-start) • [The 1Password Model](#-the-1password-model) • [Architecture](#-architecture) • [Format Spec](#-format-specification) • [Monorepo Structure](#-repository-structure)
 
@@ -20,53 +21,62 @@
 
 ### The Friction
 Today, personal and professional AI configurations are tribal, manual, and fragile:
-- Engineers spend weeks setting up multi-agent architectures (routers, specialist personas, auditors, MCP tools, and isolated sandboxes).
-- Sharing this setup means copying and pasting 500 lines of `.cursorrules`, `CLAUDE.md`, or messy Python scripts.
-- When an agent requires an isolated Docker/WSL environment (e.g. penetration testing, code execution), 95% of users fail at the dependency setup.
+- Engineers spend weeks setting up multi-agent architectures (routers, specialist personas, auditors, MCP tools, and skills).
+- Sharing this setup means copying and pasting 500 lines of `.cursorrules`, `CLAUDE.md`, or messy Python scripts across disparate tools.
+- When an agent requires specific runtimes, binaries, or services, 95% of users fail at dependency setup.
 
-### The Solution: Turnkey Architecture Provisioning
+### The Solution: Verified Cross-Client Bundles
 ```bash
 npx aipack apply @security/hermes-redteam-sandbox
 ```
-**AIPack turns weeks of systems engineering into a 10-second turnkey command.**  
-It automatically inspects the host OS, bootstraps missing Docker or WSL runtimes, encrypts API keys into the OS Keychain, and injects clean, atomic configurations directly into Claude Code (`.claude/`), Cursor (`.cursor/`), or Claude Projects.
+**AIPack turns weeks of setup into a verified turnkey command.**  
+It automatically audits host OS requirements, verifies binaries and package managers (`brew`, `apt`, `npm`, `pip`, `uv`), securely resolves API keys into the OS Keychain, and injects clean, atomic configurations directly into Claude Code (`.claude/`), Cursor (`.cursor/`), Windsurf, Roo-Code, Copilot, and Zed.
 
 ---
 
-## 🏛️ The 1Password Model
+## 🏛️ The 1Password Model (Standards-First Architecture)
 
-We explicitly **do NOT** build another chat interface (avoiding the TypingMind / LibreChat trap).
+We explicitly **do NOT** invent another redundant format or build another chat interface. We live on top of established open standards:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   AIPACK PLATFORM                       │
-│    Single Source of Truth: Personas + Rules + MCP      │
-│         + Workflows + Knowledge + Secret Schemas        │
+│                   AIPACK BUNDLE                        │
+│   AGENTS.md (AAIF) + skills/ (Skills) + mcp.json (MCP) │
+│       + aipack.yaml (Requirements, Secrets & Routing)  │
 └──────────────┬──────────────────────────┬──────────────┘
                │                          │
       (Atomic Provisioning)      (Atomic Provisioning)
                ▼                          ▼
    ┌───────────────────────┐  ┌───────────────────────┐
    │      Claude Code      │  │     Cursor / IDE      │
-   │  .claude/agents/*.md  │  │   .cursor/rules/*.md  │
+   │  .claude/agents/*.md  │  │   .cursor/rules/*.mdc │
    │  CLAUDE.md            │  │   .cursor/mcp.json    │
    │  settings.json        │  │   .cursorrules        │
    └───────────────────────┘  └───────────────────────┘
 ```
 
-* **We live ABOVE the platforms:** We configure execution runtimes rather than competing with them.
-* **Zero Compute Costs:** The user executes via their own Claude Pro/Team or Cursor accounts; our platform bears zero GPU or token overhead.
-* **No Platform Lock-in:** Move from Cursor to Claude or back in seconds without losing your agent workforce.
+* **Living Above the Platforms:** We configure execution runtimes rather than competing with them.
+* **Standards-First:** Native `AGENTS.md` and `SKILL.md` are packaged as-is.
+* **Verified Installation:** Pre-flight audit guarantees "this pack will run on your machine".
+* **No Platform Lock-in:** Move from Cursor to Claude, Windsurf, or Copilot in seconds without losing your agent workforce.
 
 ---
 
 ## 📦 The 3-Tier Pack Pyramid
 
-| Level | Name | Includes | Typical Use Case |
+```
+my-pack.aipack (ZIP Bundle)
+├── AGENTS.md                 # Standard (Linux Foundation AAIF): Rules & personas
+├── skills/<name>/SKILL.md    # Standard (Agent Skills): Reusable capabilities
+├── mcp.json                  # Standard (Anthropic/AAIF): MCP server definitions
+└── aipack.yaml               # AIPack Layer: Requirements, Level 3 workflow & sandbox label
+```
+
+| Level | Name | Package Composition | Typical Use Case |
 | :--- | :--- | :--- | :--- |
-| **Level 1** | **Simple** | Persona + System Rules | Language style guides, `.cursorrules` for Go/Rust |
-| **Level 2** | **Enhanced** | Persona + Rules + MCP Tools + Knowledge Base | Tax advisor with legal PDF docs, Shopify automation bot |
-| **Level 3** | **System** | **Multi-Agent Teams + Routing + Workflow + Isolated Sandboxes (Docker/WSL)** | **Autonomous Security Red Team, 3-Agent Full-Stack Architect** |
+| **Level 1** | **Simple** | `AGENTS.md` (Persona + Directives) | Language style guides, coding conventions |
+| **Level 2** | **Enhanced** | `AGENTS.md` + `skills/` + `mcp.json` + `aipack.yaml` (Secrets/Binaries) | Tax advisor with legal PDF docs, Shopify automation bot |
+| **Level 3** | **System** | **`AGENTS.md` + `skills/` + `mcp.json` + `aipack.yaml` (Multi-Agent Mesh + Workflow + Sandbox)** | **Autonomous Security Red Team, 3-Agent Full-Stack Architect** |
 
 ---
 
@@ -78,7 +88,13 @@ Run directly via `npx` or install globally:
 npm install -g aipack
 ```
 
-### 2. Scaffold a New Pack
+### 2. Create from Existing Project (Supply Generator)
+Turn your current project setup (`.claude/`, `.cursor/rules/`, `AGENTS.md`, `mcp.json`) into a shareable bundle with auto-detected requirements:
+```bash
+aipack init --from-existing
+```
+
+### 3. Or Scaffold a New Pack Skeleton
 ```bash
 # Initialize a Level 3 Multi-Agent System
 aipack init my-security-team --level system --category security

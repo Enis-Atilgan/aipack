@@ -99,6 +99,16 @@ my-pack.aipack/
 - Paket self-contained kalır, internet olmadan da çalışır
 - İndirme hızlı, deneyim pürüzsüz
 
+> [!IMPORTANT] [05.10.2026 STRATEJİK REVİZYONU - STANDARTLAR-ÖNCELİKLİ PAKET YAPISI]
+> Standartlar oturduğu için (AAIF `AGENTS.md`, Anthropic `MCP`, `SKILL.md`), `.aipack` artık bu standart dosyaları olduğu gibi barındırır:
+> ```
+> my-pack.aipack (ZIP)
+> ├── AGENTS.md                 # Standart kural ve personolar
+> ├── skills/<ad>/SKILL.md      # Standart yetenek tanımları
+> ├── mcp.json                  # Standart MCP sunucuları
+> └── aipack.yaml               # Bizim katman: requirements (secrets, binaries), workflow, sandbox etiketi
+> ```
+
 #### Büyük dosyalar (> 5MB): Referans ile
 ```json
 {
@@ -132,8 +142,11 @@ my-pack.aipack/
 
 **Yol 1 — YAML/JSON + CLI (geliştiriciler için)**
 ```bash
-# Yeni paket oluştur
+# Yeni paket oluştur (şablon)
 aipack init my-pack
+
+# [05.10.2026 YENİ KATİL KOMUT] — Mevcut projeden otomatik paket üret
+aipack init --from-existing
 
 # Doğrula
 aipack validate my-pack/
@@ -141,6 +154,10 @@ aipack validate my-pack/
 # Marketplace'e yayınla
 aipack publish
 ```
+
+> [!TIP] [05.10.2026 STRATEJİK EKLEME — `aipack init --from-existing` (ARZ MOTORU)]
+> Kimse manifest'i sıfırdan yazmak istemez. Geliştiricinin projesindeki `.claude/`, `.cursor/rules/`, `AGENTS.md`, `mcp.json` dosyalarını tarar; `aipack.yaml` ve paket iskeletini otomatik üretir; gereksinimleri (`node`, `uvx`, `GITHUB_TOKEN` vb.) tespit eder.
+> **"Benim kurulumum → tek komut → paylaşılabilir paket"** akışıyla pazaryerine devasa içerik arzı sağlar.
 
 Neden:
 - Geliştiriciler bunu sever (npm publish, docker push ile aynı mental model)
@@ -258,14 +275,46 @@ Bu model şunu sağlıyor: Format yaygınlaşır → herkes `.aipack` kullanır 
 
 ---
 
-## Özet: Tüm Kararlar Bir Bakışta
+## Soru 8: İsim Çakışması (`aipack.ai`) (05.10.2026 Eklendi)
+
+### Durum ve Tehdit:
+`aipack.ai` (Rust tabanlı, açık kaynak agentic runtime; "Run, Build, and Share AI Packs" sloganı) ile:
+- CLI komut adımız (`aipack`)
+- Çalışma dizini (`.aipack/`)
+- Paket dosya uzantısı (`.aipack`)
+doğrudan çakışmaktadır.
+
+### Kararım:
+1. Öncelik sıramızda en başa alınmıştır. Çakışmayı gidermek için marka, CLI adı ve paket uzantısı stratejisi (örn: `agentpack`, `aipkg` veya üst seviye tescilli ad) netleştirilecektir.
+
+---
+
+## Soru 9: Standartlar Varken Neden Biz? (Farklılaşma & Ürün Tanımı) (05.10.2026 Eklendi)
+
+### Durum:
+1. `AGENTS.md` ve `MCP` (Linux Foundation AAIF) ile `SKILL.md` açık standartları oturdu. "Yeni evrensel format" veya "İsviçre tarafsızlığı" iddiası bizi tek başına ayıramaz.
+2. AgentSync, agentctl, scribe vb. 8-10 açık kaynak araç sync işini zaten yapıyor. **Sync bizim için ürün değil, sadece bir özelliktir.**
+
+### Kararım ve Ürün Tanımımız:
+AIPack = Standartların üstünde **Bundle + Önkoşul Denetimi (Pre-flight) + Cross-Client Dağıtım / Marketplace** katmanıdır.
+
+1. **Cross-Client Marketplace:** Claude Code, Codex, Cursor'ın kendi plugin sistemleri kendi manifestolarını ister; biz tek paketten hepsine provizyon yapar ve dağıtırız.
+2. **Doğrulanmış Kurulum Garantisi:** "Bu paket senin makinende kesin çalışır" garantisi (OS, RAM, paket yöneticileri, binary, servis, secret denetimi).
+3. **Gerçek Bundle:** Ajan, kural (`AGENTS.md`), yetenek (`SKILL.md`), araç (`mcp.json`), gereksinimler ve iş akışı (`aipack.yaml`) tek pakette.
+4. **Atomik Apply/Clean:** Mevcut ayarları bozmadan merge, sahiplik işaretleriyle tam temizlik.
+5. **init --from-existing:** Geliştiricinin mevcut projesinden tek tıkla paylaşılabilir paket üretimi.
+
+---
+
+## Özet: Tüm Kararlar Bir Bakışta (05.10.2026 Güncellendi)
 
 | Soru | Karar | Gerekçe |
 |---|---|---|
-| Runtime | v1: Config export, v1.5: Lokal CLI, v2: Opsiyonel bulut | Sıfır maliyet ile başla |
-| Platformlar | Cursor → Claude → ChatGPT | Geliştirici öncelikli |
-| Knowledge | Küçük gömülü, büyük referans | Paket hafif kalsın |
-| Oluşturma | YAML+CLI + Web form | İki kitle aynı anda |
-| Açık kaynak | Format+CLI açık, Marketplace kapalı | Docker modeli |
-| Auth | GitHub + Google OAuth | Hızlı, güvenli, sürtünmesiz |
-| Stack | Next.js + Supabase + Vercel | Tek kişi ile en hızlı MVP |
+| Konumlandırma | Standartların üstünde Bundle + Pre-Flight + Marketplace | Standartlar oturdu, format icat etmiyoruz |
+| Paket Yapısı | `AGENTS.md` + `SKILL.md` + `mcp.json` + `aipack.yaml` | Standart dosyalar olduğu gibi paketlenir |
+| Runtime | Altyapı/VM sağlayıcısı DEĞİLİZ; Pre-flight audit + injection | Kullanıcı riski ve tercihi; hafif CLI |
+| Sandbox | `requirements.sandbox` sadece tavsiye etiketidir | Zorla Docker/WSL kurmuyoruz, raporluyoruz |
+| Oluşturma | `aipack init --from-existing` + şablon + web form | Sıfır sürtünmeyle pazaryerine içerik arzı |
+| Açık kaynak | CLI açık, Marketplace kapalı | Docker / npm modeli |
+| İsim Çakışması | `aipack.ai` çakışması için marka stratejisi (1. Öncelik) | Hukuki ve pazar karışıklığını önleme |
+| Stack | Next.js + Supabase + Vercel (CLI: Node.js) | En hızlı tek kişilik MVP ve paylaşılan kod |

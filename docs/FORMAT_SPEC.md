@@ -1,68 +1,79 @@
-# AIPack Format Specification v1.0
+# AIPack Format Specification v2.0 (Standartlar-Öncelikli Bundle Mimarisi)
 
-> **Status:** Draft
-> **Authors:** hatred
+> **Status:** Active (05.10.2026 Stratejik Revizyonu)
+> **Authors:** hatred & GÖKBÖRÜ
 > **License:** CC-BY-4.0 (Açık Standart)
 
 ---
 
 ## 1. Genel Bakış
 
-`.aipack`, yapay zeka sistemlerinin taşınabilir, paylaşılabilir ve platform-bağımsız tanım formatıdır. Tek bir system prompt'tan, çok ajanlı karmaşık mimarilere kadar her şeyi tek bir standartta paketler.
+> [!IMPORTANT] [05.10.2026 STRATEJİK REVİZYONU — STANDARTLARIN ÜSTÜNDEKİ BUNDLE KATMANI]
+> Pazar araştırması; Linux Foundation AAIF çatısı altındaki `AGENTS.md` ve `MCP` ile açık `SKILL.md` (Agent Skills) standartlarının sektöre yerleştiğini göstermiştir.
+> Bu nedenle AIPack **yeni bir format icat etmek yerine, açık standartların üstünde yaşayan bir BUNDLE + ÖNKOŞUL DENETİMİ (PRE-FLIGHT) + CROSS-CLIENT MARKETPLACE KATMANIDIR.**
+> İstemcilerin doğrudan tanıdığı standart dosyalar olduğu gibi paketlenir; AIPack'in kendi manifest'i (`aipack.yaml`) ise yalnızca standartların karşılamadığı alanları (sistem gereksinimleri, Level 3 iş akışı ve sandbox tavsiyesi) tanımlar.
 
 ### Tasarım İlkeleri
 
-1. **İnsan tarafından okunabilir** — JSON tabanlı, herhangi bir metin editörüyle açılıp düzenlenebilir
-2. **Kademeli karmaşıklık** — Basit bir persona 5 satırda tanımlanabilir; karmaşık sistemler aynı formatta büyür
-3. **Platform bağımsız** — Tek kaynak, birden fazla hedefe export edilir
-4. **Self-contained** — Paket tek başına anlam ifade eder, dış bağımlılık minimumda tutulur
+1. **Standart-Öncelikli (Standards-First)** — `AGENTS.md`, `SKILL.md` ve `mcp.json` birinci sınıf girdidir; tekerleği yeniden icat etmiyoruz.
+2. **Doğrulanmış Kurulum (Pre-Flight Verified)** — "Bu paket senin makinende çalışır" garantisi (OS, binary, servis, API Key denetimi).
+3. **Cross-Client Taşınabilirlik** — Tek paketten Claude Code, Cursor, Windsurf, Roo-Code, Copilot, Zed ve Aider uyumlu provizyon.
+4. **Sürtünmesiz Arz (`init --from-existing`)** — Mevcut bir projenin kurulumundan tek tıkla paylaşılabilir bundle üretme.
 
 ---
 
-## 2. Paket Seviyeleri
+## 2. Paket Seviyeleri (05.10.2026 Güncellendi)
 
-Format, üç karmaşıklık seviyesini destekler. Her seviye bir öncekini kapsar:
+Format, üç karmaşıklık seviyesini standart dosyalar + `aipack.yaml` orkestrasyonuyla destekler:
 
 ```
-┌─────────────────────────────────────────┐
-│  Level 3: SYSTEM                        │
-│  Multi-agent + Workflow + Orchestration  │
-│  ┌───────────────────────────────────┐  │
-│  │  Level 2: ENHANCED                │  │
-│  │  + Tools/MCP + Knowledge Base     │  │
-│  │  ┌─────────────────────────────┐  │  │
-│  │  │  Level 1: SIMPLE            │  │  │
-│  │  │  Persona + Rules            │  │  │
-│  │  └─────────────────────────────┘  │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  Level 3: SYSTEM                                       │
+│  AGENTS.md + skills/ + mcp.json + aipack.yaml          │
+│  (Multi-Agent Mesh + State Machine Workflow + Sandbox) │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Level 2: ENHANCED                               │  │
+│  │  AGENTS.md + skills/ + mcp.json + aipack.yaml    │  │
+│  │  (Skills + MCP Tools + Secrets/Binaries Preflight│  │
+│  │  ┌────────────────────────────────────────────┐  │  │
+│  │  │  Level 1: SIMPLE                           │  │  │
+│  │  │  AGENTS.md (Standart Kural ve Personolar)  │  │  │
+│  │  └────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
 ```
 
-| Seviye | Ne İçerir | Kullanım |
+| Seviye | Standart Dosyalar + AIPack Katmanı | Kullanım Amacı |
 |---|---|---|
-| **Simple** | Persona + Rules | "Cursor'ım için Go kuralları" |
-| **Enhanced** | + Tools + Knowledge | "Shopify entegrasyonlu e-ticaret asistanı" |
-| **System** | + Multi-Agent + Workflow | "3 ajanlı müşteri destek sistemi" |
+| **Simple** | `AGENTS.md` (Persona + Kurallar) | "Cursor için Go kuralları", "Temel kodlama anayasası" |
+| **Enhanced** | `AGENTS.md` + `skills/` + `mcp.json` + `aipack.yaml` | "Gereksinimli Shopify e-ticaret asistanı", "Veritabanı denetçisi" |
+| **System** | `AGENTS.md` + `skills/` + `mcp.json` + `aipack.yaml` (Workflow + Sandbox) | "3 ajanlı müşteri destek timi", "Otonom Red Team / Pentest timi" |
 
 ---
 
-## 3. Dizin Yapısı
+## 3. Dizin Yapısı (05.10.2026 Yeni Standart-Öncelikli Yapı)
 
-Bir `.aipack` dosyası, aşağıdaki yapıya sahip bir dizindir (veya bu dizinin zip olarak sıkıştırılmış halidir):
+Bir `.aipack` paketi aşağıdaki dosya yapısına sahip bir dizin veya ZIP arşivdir:
 
 ```
-my-pack/
-├── manifest.json          # Zorunlu. Paketin kimliği ve yapılandırması.
-├── README.md              # Opsiyonel. Açıklama, kurulum rehberi, örnekler.
-├── persona/               # Opsiyonel. Persona tanım dosyaları.
-│   └── system.md          # Ana system prompt (Markdown formatında)
-├── rules/                 # Opsiyonel. Kural dosyaları.
-│   └── rules.md           # Davranış kuralları (Markdown formatında)
-├── knowledge/             # Opsiyonel. Bilgi tabanı dosyaları.
-│   ├── api-reference.md
-│   └── coding-standards.md
-├── agents/                # Opsiyonel (Level 3). Ajan tanımları.
-│   ├── router/
+my-pack.aipack (ZIP veya dizin)
+├── AGENTS.md                 # Standart (AAIF): Kural ve personolar
+├── skills/                   # Standart (Agent Skills): Prosedürel yetenekler
+│   └── <skill-ad>/
+│       └── SKILL.md
+├── mcp.json                  # Standart (MCP): Araç ve sunucu tanımları
+└── aipack.yaml               # Bizim Katman: requirements, workflow, sandbox etiketi
+```
+
+> [!NOTE]
+> ### 📜 ESKİ MANİFEST YAPISI (ARŞİV — v1.0 / v2.0 JSON)
+> *Geriye dönük uyumluluk için CLI monolitik `manifest.json` dosyalarını da okumaya devam eder:*
+> ```
+> ~~my-pack/~~
+> ~~├── manifest.json          # Eski tekil JSON~~
+> ~~├── persona/system.md      # Eski ayrı persona~~
+> ~~└── rules/rules.md         # Eski ayrı kural~~
+> ```
 │   │   └── system.md
 │   └── specialist/
 │       └── system.md
@@ -631,6 +642,7 @@ aipack install senior-go-backend@1.2.0
 ```bash
 # Paket oluşturma
 aipack init <name>              # Yeni paket iskeleti oluştur (--level simple|enhanced|system)
+aipack init --from-existing     # [05.10.2026] Mevcut projeyi (.claude/, .cursor/, AGENTS.md, mcp.json) tara, aipack.yaml ve paket üret
 aipack validate <path>          # Manifest'i ve semantik kuralları doğrula
 aipack pack <path>              # Dizini .aipack arşivine paketle
 aipack unpack <file>            # .aipack arşivini dizine aç
