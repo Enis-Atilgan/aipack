@@ -1,6 +1,6 @@
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, rmSync } from 'fs';
 import { resolve, join } from 'path';
-import { loadManifest, validateManifest } from './validate.js';
+import { loadManifestAsync } from './validate.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToCursor } from '../exporters/cursor.js';
 import { log } from '../utils/logger.js';
@@ -30,8 +30,10 @@ function simpleLineDiff(oldStr, newStr) {
 }
 
 export async function diffCommand(path, options = {}) {
+  let tempCleanupDir = null;
   try {
-    const { manifest, dir } = loadManifest(path);
+    const { manifest, dir, isTemp } = await loadManifestAsync(path);
+    if (isTemp) tempCleanupDir = dir;
     const targetDir = resolve(options.cwd || '.');
     const targetClient = (options.target || 'all').toLowerCase();
 
@@ -121,5 +123,9 @@ export async function diffCommand(path, options = {}) {
   } catch (err) {
     log.error(err.message);
     process.exit(1);
+  } finally {
+    if (tempCleanupDir) {
+      try { rmSync(tempCleanupDir, { recursive: true, force: true }); } catch {}
+    }
   }
 }

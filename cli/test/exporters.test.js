@@ -43,4 +43,36 @@ describe('Format Exporters (Claude, Cursor, ChatGPT)', () => {
     assert.ok(result.includes('AppSec Engineer'));
     assert.ok(result.includes('Rules:'));
   });
+
+  test('exportToClaude and exportToCursor export Level 3 multi-agent workforce and routing tables', () => {
+    const systemManifest = {
+      spec_version: '1.0',
+      name: 'redteam-system',
+      version: '2.0.0',
+      description: 'Level 3 autonomous red team.',
+      level: 'system',
+      agents: [
+        { id: 'lead', name: 'Lead Architect', model_preference: 'smart', persona: { instructions: 'Coordinate attack.' } },
+        { id: 'recon', name: 'Recon Specialist', model_preference: 'fast', persona: { instructions: 'Scan ports.' } }
+      ],
+      workflow: {
+        entry: 'lead',
+        shared_context: { max_history_messages: 25 },
+        routes: [
+          { from: 'lead', to: 'recon', condition: 'target_specified' }
+        ]
+      }
+    };
+
+    const claudeResult = exportToClaude(systemManifest, '.');
+    assert.ok(claudeResult.includes('Multi-Agent Workforce (Level 3 System)'));
+    assert.ok(claudeResult.includes('Lead Architect'));
+    assert.ok(claudeResult.includes('Routing Decision Table'));
+    assert.ok(claudeResult.includes('target_specified'));
+
+    const cursorResult = exportToCursor(systemManifest, '.');
+    assert.ok(cursorResult.includes('Multi-Agent Workforce (Level 3)'));
+    assert.ok(cursorResult.includes('Task Routing Logic'));
+    assert.ok(cursorResult.includes('Route from `lead` to `recon`'));
+  });
 });

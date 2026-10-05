@@ -4,6 +4,7 @@ import { existsSync, rmSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import os from 'os';
 import { initCommand } from '../src/commands/init.js';
+import { packCommand } from '../src/commands/pack.js';
 import { applyCommand } from '../src/commands/apply.js';
 import { cleanCommand } from '../src/commands/clean.js';
 
@@ -66,5 +67,36 @@ describe('End-to-End Pack Lifecycle (Init -> Apply -> Clean)', () => {
     assert.equal(existsSync(join(targetDir, 'CLAUDE.md')), false, 'CLAUDE.md should be cleaned');
     assert.equal(existsSync(join(targetDir, '.claude', 'agents', 'worker.md')), false, 'Worker subagent should be cleaned');
     assert.equal(existsSync(join(targetDir, '.cursorrules')), false, '.cursorrules should be cleaned');
+  });
+
+  test('packs into .aipack archive and applies directly from the archive file', async () => {
+    const mockManifest = {
+      spec_version: '1.0',
+      name: 'archive-test-pack',
+      version: '1.0.0',
+      description: 'Pack for archive direct testing.',
+      author: { name: 'tester' },
+      level: 'system',
+      agents: [
+        { id: 'sec-lead', name: 'Security Lead', persona: { instructions: 'Coordinate pentest.' } }
+      ]
+    };
+
+    const sourceDir = join(tmpDir, 'archive-source');
+    mkdirSync(sourceDir, { recursive: true });
+    const { writeFileSync } = await import('fs');
+    writeFileSync(join(sourceDir, 'manifest.json'), JSON.stringify(mockManifest, null, 2));
+
+    const archivePath = join(tmpDir, 'test-package.aipack');
+    await packCommand(sourceDir, { output: archivePath });
+    assert.equal(existsSync(archivePath), true, '.aipack archive should be created');
+
+    // Apply DIRECTLY from the .aipack archive file
+    await applyCommand(archivePath, { cwd: targetDir, target: 'all' });
+    assert.equal(existsSync(join(targetDir, 'CLAUDE.md')), true, 'CLAUDE.md should be injected from archive');
+    assert.equal(existsSync(join(targetDir, '.claude', 'agents', 'sec-lead.md')), true, 'Subagent injected from archive');
+
+    // Clean up
+    await cleanCommand(sourceDir, { cwd: targetDir, target: 'all' });
   });
 });

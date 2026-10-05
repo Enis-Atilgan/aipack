@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { resolve, join } from 'path';
 import { execSync } from 'child_process';
-import { loadManifest, validateManifest, runSemanticChecks } from './validate.js';
+import { loadManifestAsync, validateManifest, runSemanticChecks } from './validate.js';
 import { runPreflight } from '../utils/preflight.js';
 import { getCredential, setCredential } from '../utils/credentials.js';
 import { exportToClaude } from '../exporters/claude.js';
@@ -37,8 +37,10 @@ function mergeMcpConfig(filePath, newServers) {
 }
 
 export async function applyCommand(path, options = {}) {
+  let tempCleanupDir = null;
   try {
-    const { manifest, dir } = loadManifest(path);
+    const { manifest, dir, isTemp } = await loadManifestAsync(path);
+    if (isTemp) tempCleanupDir = dir;
     const targetDir = resolve(options.cwd || '.');
     const targetClient = (options.target || 'all').toLowerCase();
 
@@ -232,5 +234,9 @@ export async function applyCommand(path, options = {}) {
   } catch (err) {
     log.error(err.message);
     process.exit(1);
+  } finally {
+    if (tempCleanupDir) {
+      try { rmSync(tempCleanupDir, { recursive: true, force: true }); } catch {}
+    }
   }
 }

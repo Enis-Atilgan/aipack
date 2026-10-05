@@ -630,25 +630,20 @@ aipack install senior-go-backend@1.2.0
 
 ```bash
 # Paket oluşturma
-aipack init <name>              # Yeni paket iskeleti oluştur
-aipack validate <path>          # Manifest'i doğrula
-aipack pack <path>              # Dizini .aipack dosyasına paketle
-aipack unpack <file>            # .aipack dosyasını dizine aç
+aipack init <name>              # Yeni paket iskeleti oluştur (--level simple|enhanced|system)
+aipack validate <path>          # Manifest'i ve semantik kuralları doğrula
+aipack pack <path>              # Dizini .aipack arşivine paketle
+aipack unpack <file>            # .aipack arşivini dizine aç
+
+# Önkoşul Denetimi ve Enjeksiyon (Turnkey Provisioning)
+aipack apply <path|file>        # Pre-flight sistem denetimi yap, bağımlılıkları kontrol et ve Claude/Cursor'a enjekte et
+aipack diff <path|file>         # Değişiklikleri diske yazmadan görsel olarak incele
+aipack clean <path|file>        # Enjekte edilen dosyaları ve MCP araçlarını atomik olarak temizle
 
 # Platform export
 aipack export <path> --target cursor     # .cursorrules üret
 aipack export <path> --target claude     # CLAUDE.md üret
 aipack export <path> --target chatgpt   # custom_instructions.txt üret
-
-# Marketplace
-aipack publish <path>           # Marketplace'e yayınla
-aipack install <name>           # Marketplace'ten indir ve kur
-aipack update <name>            # Güncelle
-aipack search <query>           # Ara
-
-# Bilgi
-aipack info <name>              # Paket detayları
-aipack list                     # Kurulu paketleri listele
 ```
 
 ---

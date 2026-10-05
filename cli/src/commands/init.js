@@ -141,6 +141,15 @@ const TEMPLATES = {
           max_history_messages: 20,
         },
       },
+      requirements: {
+        platform: {
+          os: ['darwin', 'linux', 'win32'],
+          min_ram_gb: 8,
+        },
+        binaries: [],
+        services: [],
+        secrets: [],
+      },
     }),
     dirs: ['persona', 'rules', 'knowledge', 'agents/router', 'agents/specialist'],
     files: [

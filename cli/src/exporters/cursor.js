@@ -18,6 +18,12 @@ export function exportToCursor(manifest, packDir) {
   // Knowledge (embedded only)
   output += buildKnowledgeSection(manifest, packDir);
 
+  // Level 3: Multi-Agent Architecture
+  output += buildAgentsSection(manifest, packDir);
+
+  // Level 3: Workflow Routing
+  output += buildWorkflowSection(manifest);
+
   return output.trim() + '\n';
 }
 
@@ -90,6 +96,54 @@ function buildKnowledgeSection(manifest, packDir) {
         section += `<!-- Error: Could not read ${k.path} -->\n\n`;
       }
     }
+  }
+
+  return section;
+}
+
+function buildAgentsSection(manifest, packDir) {
+  let section = '';
+  const agents = manifest.agents;
+  if (!agents || agents.length === 0) return section;
+
+  section += '## Multi-Agent Workforce (Level 3)\n\n';
+  section += 'This pack configures specialized agent personas for this project:\n\n';
+
+  for (const agent of agents) {
+    section += `### ${agent.name} (\`${agent.id}\`)\n\n`;
+    if (agent.description) section += `${agent.description}\n\n`;
+    if (agent.model_preference) section += `Model Tier: ${agent.model_preference}\n\n`;
+
+    if (agent.persona?.file) {
+      try {
+        section += readFileSync(join(packDir, agent.persona.file), 'utf-8') + '\n\n';
+      } catch {
+        if (agent.persona.instructions) section += agent.persona.instructions + '\n\n';
+      }
+    } else if (agent.persona?.instructions) {
+      section += agent.persona.instructions + '\n\n';
+    }
+  }
+
+  return section;
+}
+
+function buildWorkflowSection(manifest) {
+  let section = '';
+  const workflow = manifest.workflow;
+  if (!workflow) return section;
+
+  section += '## Task Routing Logic\n\n';
+  if (workflow.entry) {
+    section += `Primary Entrypoint: \`${workflow.entry}\`\n\n`;
+  }
+
+  if (workflow.routes && workflow.routes.length > 0) {
+    section += 'Routing Rules:\n';
+    for (const r of workflow.routes) {
+      section += `- Route from \`${r.from}\` to \`${r.to}\` when: ${r.condition}\n`;
+    }
+    section += '\n';
   }
 
   return section;

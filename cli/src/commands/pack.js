@@ -1,17 +1,25 @@
 import { createWriteStream, existsSync, statSync } from 'fs';
 import { resolve, basename } from 'path';
 import archiver from 'archiver';
-import { loadManifest, validateManifest } from './validate.js';
+import { loadManifest, validateManifest, runSemanticChecks } from './validate.js';
 import { log } from '../utils/logger.js';
 
 export async function packCommand(path, options) {
   try {
     const { manifest, dir } = loadManifest(path);
 
-    // Validate first
+    // Validate schema
     const result = validateManifest(manifest);
     if (!result.valid) {
       log.error('Manifest has validation errors. Run "aipack validate" first.');
+      process.exit(1);
+    }
+
+    // Semantic checks
+    const { errors } = runSemanticChecks(manifest, dir);
+    if (errors.length > 0) {
+      log.error('Manifest has semantic errors:');
+      for (const e of errors) log.error(`  - ${e}`);
       process.exit(1);
     }
 

@@ -81,5 +81,56 @@ export function exportToClaude(manifest, packDir) {
     output += '\n';
   }
 
+  // Level 3: Multi-Agent Architecture
+  if (manifest.agents && manifest.agents.length > 0) {
+    output += '## Multi-Agent Workforce (Level 3 System)\n\n';
+    output += 'This system operates with a coordinated team of specialized agents:\n\n';
+
+    for (const agent of manifest.agents) {
+      output += `### Agent: ${agent.name} (\`${agent.id}\`)\n\n`;
+      if (agent.description) output += `${agent.description}\n\n`;
+      if (agent.model_preference) output += `* **Model Tier:** \`${agent.model_preference}\`\n`;
+
+      if (agent.persona?.file) {
+        try {
+          output += readFileSync(join(packDir, agent.persona.file), 'utf-8') + '\n\n';
+        } catch {
+          if (agent.persona.instructions) output += agent.persona.instructions + '\n\n';
+        }
+      } else if (agent.persona?.instructions) {
+        output += agent.persona.instructions + '\n\n';
+      }
+
+      if (agent.rules?.items) {
+        output += `* **Rules for ${agent.name}:**\n`;
+        for (const r of agent.rules.items) output += `  - ${r}\n`;
+        output += '\n';
+      }
+    }
+  }
+
+  // Level 3: Workflow & Routing Rules
+  if (manifest.workflow) {
+    output += '## Orchestration & Routing Rules\n\n';
+    if (manifest.workflow.entry) {
+      output += `* **Entrypoint Agent:** \`${manifest.workflow.entry}\` (Primary dispatcher)\n`;
+    }
+
+    if (manifest.workflow.shared_context) {
+      const sc = manifest.workflow.shared_context;
+      output += `* **Context Policy:** Retain up to ${sc.max_history_messages || 20} recent messages across agent handoffs.\n`;
+    }
+
+    if (manifest.workflow.routes && manifest.workflow.routes.length > 0) {
+      output += '\n### Routing Decision Table\n\n';
+      output += '| Source Agent | Target Agent | Condition / Intent |\n';
+      output += '| :--- | :--- | :--- |\n';
+      for (const r of manifest.workflow.routes) {
+        output += `| \`${r.from}\` | \`${r.to}\` | ${r.condition}${r.fallback ? ' *(fallback)*' : ''} |\n`;
+      }
+      output += '\n';
+    }
+  }
+
   return output.trim() + '\n';
 }

@@ -1,5 +1,7 @@
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, statSync, mkdirSync } from 'fs';
 import { resolve, join } from 'path';
+import os from 'os';
+import extractZip from 'extract-zip';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { log } from '../utils/logger.js';
@@ -26,6 +28,18 @@ export function loadManifest(packPath) {
   }
 
   return { manifest, manifestPath, dir };
+}
+
+export async function loadManifestAsync(packPath) {
+  const target = resolve(packPath || '.');
+  if (existsSync(target) && statSync(target).isFile() && (target.endsWith('.aipack') || target.endsWith('.zip'))) {
+    const tempDir = join(os.tmpdir(), `aipack-temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    mkdirSync(tempDir, { recursive: true });
+    await extractZip(target, { dir: tempDir });
+    const { manifest, manifestPath } = loadManifest(tempDir);
+    return { manifest, manifestPath, dir: tempDir, isTemp: true };
+  }
+  return { ...loadManifest(packPath), isTemp: false };
 }
 
 export function validateManifest(manifest) {
@@ -114,6 +128,18 @@ export function runSemanticChecks(manifest, dir) {
       }
       if (!agentIds.has(route.to)) {
         errors.push(`Workflow route references unknown agent: "${route.to}"`);
+      }
+    }
+  }
+
+  // Check agent files exist
+  if (manifest.agents && Array.isArray(manifest.agents)) {
+    for (const agent of manifest.agents) {
+      if (agent.persona?.file && !existsSync(join(dir, agent.persona.file))) {
+        errors.push(`Agent "${agent.id}" persona file not found: ${agent.persona.file}`);
+      }
+      if (agent.rules?.file && !existsSync(join(dir, agent.rules.file))) {
+        errors.push(`Agent "${agent.id}" rules file not found: ${agent.rules.file}`);
       }
     }
   }
