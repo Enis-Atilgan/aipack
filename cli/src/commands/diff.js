@@ -7,6 +7,44 @@ import { exportToAgentsMd } from '../exporters/agentsmd.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
 
+export const CLIENT_CAPABILITIES = {
+  claude: {
+    name: 'Claude Code / Desktop',
+    supportsSubagents: true,
+    supportsMcp: true,
+    supportsRules: true,
+    supportsWorkflowRouting: true,
+  },
+  cursor: {
+    name: 'Cursor',
+    supportsSubagents: false, // Emulated via .cursor/rules/*.mdc
+    supportsMcp: true,
+    supportsRules: true,
+    supportsWorkflowRouting: false, // Emulated via rule globs/alwaysApply
+  },
+  agentsmd: {
+    name: 'AGENTS.md (Zed, Copilot, Aider, Codex)',
+    supportsSubagents: false, // Flattened markdown
+    supportsMcp: false,
+    supportsRules: true,
+    supportsWorkflowRouting: false,
+  },
+  windsurf: {
+    name: 'Windsurf Cascade',
+    supportsSubagents: false,
+    supportsMcp: false,
+    supportsRules: true,
+    supportsWorkflowRouting: false,
+  },
+  roo: {
+    name: 'Roo-Code / Cline',
+    supportsSubagents: true, // Custom modes in .roomodes
+    supportsMcp: true,
+    supportsRules: true,
+    supportsWorkflowRouting: false,
+  }
+};
+
 function simpleLineDiff(oldStr, newStr) {
   const oldLines = oldStr ? oldStr.split('\n') : [];
   const newLines = newStr ? newStr.split('\n') : [];
@@ -39,9 +77,35 @@ export async function diffCommand(path, options = {}) {
     const targetClient = (options.target || 'all').toLowerCase();
 
     console.log();
-    console.log(chalk.bold.cyan(`🔍 AIPack Preview Diff: ${manifest.name} (v${manifest.version})`));
+    console.log(chalk.bold.cyan(`🔍 PackAI Preview Diff: ${manifest.name} (v${manifest.version})`));
     console.log(chalk.dim(`Target directory: ${targetDir}`));
     console.log();
+
+    // Client Capability Gap Audit
+    const clientsToCheck = targetClient === 'all' ? Object.keys(CLIENT_CAPABILITIES) : [targetClient];
+    const capabilityNotices = [];
+
+    for (const c of clientsToCheck) {
+      const cap = CLIENT_CAPABILITIES[c];
+      if (!cap) continue;
+      if (manifest.level === 'system' && !cap.supportsSubagents) {
+        capabilityNotices.push(`[${cap.name}] No native subagent isolation. Multi-agent workforce will be emulated/flattened.`);
+      }
+      if (manifest.workflow && !cap.supportsWorkflowRouting) {
+        capabilityNotices.push(`[${cap.name}] State-machine workflow not natively supported. Fallback to inline prompts.`);
+      }
+      if (manifest.tools?.mcp_servers?.length > 0 && !cap.supportsMcp) {
+        capabilityNotices.push(`[${cap.name}] Does not support automated MCP tool wiring.`);
+      }
+    }
+
+    if (capabilityNotices.length > 0) {
+      console.log(chalk.bold.yellow('⚠ Client Capability Audit Notices:'));
+      for (const notice of capabilityNotices) {
+        console.log(chalk.yellow(`  • ${notice}`));
+      }
+      console.log();
+    }
 
     let changesFound = false;
 
@@ -132,7 +196,7 @@ export async function diffCommand(path, options = {}) {
 
     console.log();
     if (changesFound) {
-      console.log(chalk.dim(`Run "aipack apply" to write these changes to disk.`));
+      console.log(chalk.dim(`Run "packai apply" to write these changes to disk.`));
     } else {
       console.log(chalk.green(`Target is already up-to-date with this pack.`));
     }

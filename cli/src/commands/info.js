@@ -10,7 +10,7 @@ export async function infoCommand(path, options = {}) {
     if (isTemp) tempCleanupDir = dir;
 
     console.log();
-    console.log(chalk.bold.cyan(`🐺 AIPack Dossier: ${manifest.name} (v${manifest.version})`));
+    console.log(chalk.bold.cyan(`🐺 PackAI Dossier: ${manifest.name} (v${manifest.version})`));
     console.log(chalk.dim(`Level: ${manifest.level.toUpperCase()} | License: ${manifest.license || 'N/A'} | Category: ${manifest.category || 'other'}`));
     console.log(chalk.dim(`Description: ${manifest.description}`));
     console.log();

@@ -1,16 +1,26 @@
 {
-  "name": "aipack",
+  "name": "packai",
   "version": "0.1.0",
-  "description": "Universal AI system package format - CLI tool",
+  "description": "PackAI: Standards-first bundle, pre-flight provisioning & cross-client distribution layer for AI agents",
   "type": "module",
   "bin": {
-    "aipack": "./bin/aipack.js"
+    "packai": "./bin/packai.js",
+    "aipack": "./bin/packai.js"
   },
   "scripts": {
     "test": "node --test test/",
     "lint": "eslint src/"
   },
-  "keywords": ["ai", "llm", "persona", "agent", "cursor", "claude", "chatgpt", "mcp"],
+  "keywords": [
+    "ai",
+    "llm",
+    "persona",
+    "agent",
+    "cursor",
+    "claude",
+    "chatgpt",
+    "mcp"
+  ],
   "author": "hatred",
   "license": "MIT",
   "dependencies": {
@@ -19,7 +29,8 @@
     "archiver": "^7.0.0",
     "chalk": "^5.3.0",
     "commander": "^13.0.0",
-    "extract-zip": "^2.0.1"
+    "extract-zip": "^2.0.1",
+    "yaml": "^2.9.1"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -132,7 +132,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📦</span>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">AIPack</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">PackAI</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/browse" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
@@ -160,11 +160,11 @@ export default function Home() {
           </span>
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-10">
-          Discover, share, and install complete AI configurations — from simple personas to multi-agent architectures. One format, every platform.
+          Discover, share, and install complete AI configurations — from simple personas to multi-agent architectures. Standards-first bundles, every platform.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
           <div className="bg-gray-900 dark:bg-gray-700 text-green-400 px-6 py-3 rounded-lg font-mono text-sm">
-            npx aipack install senior-go-backend
+            npx packai apply senior-go-backend
           </div>
           <Link
             href="/browse"
@@ -244,7 +244,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <div className="bg-white/20 backdrop-blur text-white px-6 py-3 rounded-lg font-mono text-sm">
-              npx aipack init my-awesome-pack
+              npx packai init --from-existing
             </div>
             <Link
               href="/docs/getting-started"

@@ -52,7 +52,7 @@ export async function applyCommand(path, options = {}) {
     }
 
     console.log();
-    console.log(chalk.bold.cyan(`🐺 AIPack Universal Provisioning Engine`));
+    console.log(chalk.bold.cyan(`🐺 PackAI Universal Provisioning Engine`));
     console.log(chalk.dim(`Applying: ${manifest.name} (v${manifest.version}) [Level: ${manifest.level.toUpperCase()}]`));
     console.log(chalk.dim(`Target directory: ${targetDir}`));
     console.log();

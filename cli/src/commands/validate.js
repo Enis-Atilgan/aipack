@@ -1,9 +1,10 @@
-import { readFileSync, existsSync, statSync, mkdirSync } from 'fs';
-import { resolve, join } from 'path';
+import { readFileSync, existsSync, statSync, mkdirSync, readdirSync } from 'fs';
+import { resolve, join, basename } from 'path';
 import os from 'os';
 import extractZip from 'extract-zip';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import YAML from 'yaml';
 import { log } from '../utils/logger.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -13,27 +14,147 @@ const __dirname = dirname(__filename);
 
 export function loadManifest(packPath) {
   const dir = resolve(packPath || '.');
-  const manifestPath = join(dir, 'manifest.json');
+  const candidates = [
+    'packai.yaml',
+    'packai.yml',
+    'aipack.yaml',
+    'aipack.yml',
+    'manifest.json'
+  ];
 
-  if (!existsSync(manifestPath)) {
-    throw new Error(`manifest.json not found in ${dir}`);
+  let manifestPath = null;
+  let isYaml = false;
+
+  for (const c of candidates) {
+    const full = join(dir, c);
+    if (existsSync(full)) {
+      manifestPath = full;
+      isYaml = c.endsWith('.yaml') || c.endsWith('.yml');
+      break;
+    }
+  }
+
+  if (!manifestPath) {
+    throw new Error(`Pack manifest not found in ${dir}. Expected packai.yaml, aipack.yaml or manifest.json`);
   }
 
   const raw = readFileSync(manifestPath, 'utf-8');
   let manifest;
   try {
-    manifest = JSON.parse(raw);
+    manifest = isYaml ? YAML.parse(raw) : JSON.parse(raw);
   } catch (e) {
-    throw new Error(`Invalid JSON in manifest.json: ${e.message}`);
+    throw new Error(`Invalid format in ${basename(manifestPath)}: ${e.message}`);
   }
 
-  return { manifest, manifestPath, dir };
+  // --- Standards-First Companion Files Auto-Detection ---
+
+  // 1. Companion AGENTS.md (Linux Foundation AAIF Standard)
+  const agentsMdPath = join(dir, 'AGENTS.md');
+  if (existsSync(agentsMdPath)) {
+    if (!manifest.rules) {
+      manifest.rules = { file: 'AGENTS.md' };
+    }
+    if (!manifest.persona) {
+      manifest.persona = {
+        role: manifest.name || 'AI Assistant',
+        instructions: 'Refer to AGENTS.md for operating guidelines and core rules.'
+      };
+    }
+  }
+
+  // 2. Companion mcp.json
+  const mcpJsonPath = join(dir, 'mcp.json');
+  if (existsSync(mcpJsonPath)) {
+    try {
+      const mcpRaw = JSON.parse(readFileSync(mcpJsonPath, 'utf-8'));
+      const servers = [];
+      const rawServers = mcpRaw.mcpServers || mcpRaw;
+      for (const [key, val] of Object.entries(rawServers)) {
+        servers.push({
+          id: key,
+          name: key,
+          command: val.command || 'npx',
+          args: val.args || [],
+          env: val.env || {}
+        });
+      }
+      if (!manifest.tools) manifest.tools = {};
+      if (!manifest.tools.mcp_servers || manifest.tools.mcp_servers.length === 0) {
+        manifest.tools.mcp_servers = servers;
+      }
+    } catch {}
+  }
+
+  // 3. Companion skills/ directory (standard Agent Skills format)
+  const skillsDir = join(dir, 'skills');
+  if (existsSync(skillsDir) && statSync(skillsDir).isDirectory()) {
+    try {
+      const entries = readdirSync(skillsDir, { withFileTypes: true });
+      const detectedSkills = [];
+      for (const ent of entries) {
+        if (ent.isDirectory()) {
+          const skillFile = join(skillsDir, ent.name, 'SKILL.md');
+          if (existsSync(skillFile)) {
+            detectedSkills.push(ent.name);
+          }
+        }
+      }
+      if (detectedSkills.length > 0 && (!manifest.agents || manifest.agents.length === 0)) {
+        manifest.agents = detectedSkills.map(s => ({
+          id: s,
+          name: s,
+          description: `Agent skill: ${s}`,
+          persona: { file: `skills/${s}/SKILL.md` }
+        }));
+      }
+    } catch {}
+  }
+
+  // --- Normalizations ---
+  if (!manifest.spec_version) manifest.spec_version = '2.0';
+  manifest.spec_version = String(manifest.spec_version);
+  if (!manifest.category) manifest.category = 'coding';
+
+  if (!manifest.level) {
+    if (manifest.workflow || (manifest.agents && manifest.agents.length > 1)) {
+      manifest.level = 'system';
+    } else if (manifest.tools?.mcp_servers?.length > 0 || manifest.agents?.length === 1) {
+      manifest.level = 'enhanced';
+    } else {
+      manifest.level = 'simple';
+    }
+  }
+
+  // Normalize requirements
+  if (manifest.requirements) {
+    // Normalize secrets: env -> id
+    if (manifest.requirements.secrets && Array.isArray(manifest.requirements.secrets)) {
+      for (const sec of manifest.requirements.secrets) {
+        if (!sec.id && sec.env) sec.id = sec.env;
+        if (sec.required === undefined && sec.optional !== undefined) {
+          sec.required = !sec.optional;
+        }
+      }
+    }
+    // Normalize binaries: minVersion -> min_version
+    if (manifest.requirements.binaries && Array.isArray(manifest.requirements.binaries)) {
+      for (const b of manifest.requirements.binaries) {
+        if (!b.min_version && b.minVersion) b.min_version = b.minVersion;
+      }
+    }
+  }
+
+  return { manifest, manifestPath, dir, isYaml };
 }
 
 export async function loadManifestAsync(packPath) {
   const target = resolve(packPath || '.');
-  if (existsSync(target) && statSync(target).isFile() && (target.endsWith('.aipack') || target.endsWith('.zip'))) {
-    const tempDir = join(os.tmpdir(), `aipack-temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  if (
+    existsSync(target) &&
+    statSync(target).isFile() &&
+    (target.endsWith('.packai') || target.endsWith('.aipack') || target.endsWith('.zip'))
+  ) {
+    const tempDir = join(os.tmpdir(), `packai-temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
     mkdirSync(tempDir, { recursive: true });
     await extractZip(target, { dir: tempDir });
     const { manifest, manifestPath } = loadManifest(tempDir);

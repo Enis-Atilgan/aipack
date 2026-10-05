@@ -23,10 +23,10 @@ export async function packCommand(path, options) {
       process.exit(1);
     }
 
-    const outputFile = options.output || `${manifest.name}-${manifest.version}.aipack`;
+    const outputFile = options.output || `${manifest.name}-${manifest.version}.packai`;
     const outputPath = resolve(outputFile);
 
-    log.heading('Packing AIPack');
+    log.heading('Packing PackAI Bundle');
     log.item('Pack', manifest.name);
     log.item('Version', manifest.version);
     log.item('Source', dir);

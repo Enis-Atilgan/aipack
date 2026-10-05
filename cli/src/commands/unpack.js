@@ -12,11 +12,13 @@ export async function unpackCommand(file, options) {
       process.exit(1);
     }
 
-    if (!filePath.endsWith('.aipack')) {
-      log.warn('File does not have .aipack extension.');
+    const isPackai = filePath.endsWith('.packai');
+    const isAipack = filePath.endsWith('.aipack');
+    if (!isPackai && !isAipack) {
+      log.warn('File does not have .packai or .aipack extension.');
     }
 
-    const name = basename(filePath, '.aipack');
+    const name = basename(filePath).replace(/\.(packai|aipack|zip)$/, '');
     const outputDir = options.output || resolve(name);
 
     if (existsSync(outputDir)) {
@@ -24,7 +26,7 @@ export async function unpackCommand(file, options) {
       process.exit(1);
     }
 
-    log.heading('Unpacking AIPack');
+    log.heading('Unpacking PackAI Bundle');
     log.item('File', filePath);
     log.item('Output', outputDir);
     console.log();

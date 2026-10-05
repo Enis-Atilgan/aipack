@@ -138,7 +138,7 @@ export default async function PackDetailPage({ params }: { params: Promise<{ nam
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-8">
               <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Install</h3>
               <div className="bg-gray-900 text-green-400 px-4 py-3 rounded-lg font-mono text-sm mb-4">
-                npx aipack install {pack.name}
+                npx packai apply {pack.name}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">

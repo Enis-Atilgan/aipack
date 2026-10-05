@@ -8,7 +8,7 @@
   "properties": {
     "spec_version": {
       "type": "string",
-      "const": "1.0",
+      "enum": ["1.0", "2.0"],
       "description": "Format specification version"
     },
     "name": {
@@ -271,12 +271,13 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["id"],
             "properties": {
-              "id": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+              "id": { "type": "string" },
+              "env": { "type": "string" },
               "label": { "type": "string" },
               "description": { "type": "string" },
               "required": { "type": "boolean" },
+              "optional": { "type": "boolean" },
               "validation_regex": { "type": "string" },
               "test_endpoint": {
                 "type": "object",
@@ -291,15 +292,20 @@
           }
         },
         "sandbox": {
-          "type": "object",
-          "properties": {
-            "required": { "type": "boolean" },
-            "provider": { "type": "string", "enum": ["microvm", "docker", "wsl2", "e2b", "none"] },
-            "image": { "type": "string" },
-            "isolation_level": { "type": "string", "enum": ["hardware_microvm", "container", "process"] },
-            "network": { "type": "string", "enum": ["isolated", "outbound_only", "full"] },
-            "mounts": { "type": "array", "items": { "type": "string" } }
-          }
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "required": { "type": "boolean" },
+                "provider": { "type": "string" },
+                "image": { "type": "string" },
+                "isolation_level": { "type": "string" },
+                "network": { "type": "string" },
+                "mounts": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
         }
       }
     },
