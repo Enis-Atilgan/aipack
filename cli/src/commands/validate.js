@@ -265,6 +265,15 @@ export function runSemanticChecks(manifest, dir) {
     }
   }
 
+  // Check skills files exist
+  if (manifest.skills && Array.isArray(manifest.skills)) {
+    for (const s of manifest.skills) {
+      if (s.path && !existsSync(join(dir, s.path))) {
+        warnings.push(`Skill file referenced in manifest but not found on disk: ${s.path}`);
+      }
+    }
+  }
+
   return { errors, warnings };
 }
 

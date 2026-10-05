@@ -10,8 +10,8 @@
 
 > [!IMPORTANT] [05.10.2026 STRATEJİK REVİZYONU — STANDARTLARIN ÜSTÜNDEKİ BUNDLE KATMANI]
 > Pazar araştırması; Linux Foundation AAIF çatısı altındaki `AGENTS.md` ve `MCP` ile açık `SKILL.md` (Agent Skills) standartlarının sektöre yerleştiğini göstermiştir.
-> Bu nedenle AIPack **yeni bir format icat etmek yerine, açık standartların üstünde yaşayan bir BUNDLE + ÖNKOŞUL DENETİMİ (PRE-FLIGHT) + CROSS-CLIENT MARKETPLACE KATMANIDIR.**
-> İstemcilerin doğrudan tanıdığı standart dosyalar olduğu gibi paketlenir; AIPack'in kendi manifest'i (`aipack.yaml`) ise yalnızca standartların karşılamadığı alanları (sistem gereksinimleri, Level 3 iş akışı ve sandbox tavsiyesi) tanımlar.
+> Bu nedenle PackAI **yeni bir format icat etmek yerine, açık standartların üstünde yaşayan bir BUNDLE + ÖNKOŞUL DENETİMİ (PRE-FLIGHT) + CROSS-CLIENT MARKETPLACE KATMANIDIR.**
+> İstemcilerin doğrudan tanıdığı standart dosyalar olduğu gibi paketlenir; PackAI'nin kendi manifest'i (`packai.yaml`) ise yalnızca standartların karşılamadığı alanları (sistem gereksinimleri, Level 3 iş akışı, execution komutu ve sandbox tavsiyesi) tanımlar.
 
 ### Tasarım İlkeleri
 
@@ -24,16 +24,16 @@
 
 ## 2. Paket Seviyeleri (05.10.2026 Güncellendi)
 
-Format, üç karmaşıklık seviyesini standart dosyalar + `aipack.yaml` orkestrasyonuyla destekler:
+Format, üç karmaşıklık seviyesini standart dosyalar + `packai.yaml` orkestrasyonuyla destekler:
 
 ```
 ┌────────────────────────────────────────────────────────┐
 │  Level 3: SYSTEM                                       │
-│  AGENTS.md + skills/ + mcp.json + aipack.yaml          │
+│  AGENTS.md + skills/ + mcp.json + packai.yaml          │
 │  (Multi-Agent Mesh + State Machine Workflow + Sandbox) │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  Level 2: ENHANCED                               │  │
-│  │  AGENTS.md + skills/ + mcp.json + aipack.yaml    │  │
+│  │  AGENTS.md + skills/ + mcp.json + packai.yaml    │  │
 │  │  (Skills + MCP Tools + Secrets/Binaries Preflight│  │
 │  │  ┌────────────────────────────────────────────┐  │  │
 │  │  │  Level 1: SIMPLE                           │  │  │
@@ -43,49 +43,37 @@ Format, üç karmaşıklık seviyesini standart dosyalar + `aipack.yaml` orkestr
 └────────────────────────────────────────────────────────┘
 ```
 
-| Seviye | Standart Dosyalar + AIPack Katmanı | Kullanım Amacı |
+| Seviye | Standart Dosyalar + PackAI Katmanı | Kullanım Amacı |
 |---|---|---|
 | **Simple** | `AGENTS.md` (Persona + Kurallar) | "Cursor için Go kuralları", "Temel kodlama anayasası" |
-| **Enhanced** | `AGENTS.md` + `skills/` + `mcp.json` + `aipack.yaml` | "Gereksinimli Shopify e-ticaret asistanı", "Veritabanı denetçisi" |
-| **System** | `AGENTS.md` + `skills/` + `mcp.json` + `aipack.yaml` (Workflow + Sandbox) | "3 ajanlı müşteri destek timi", "Otonom Red Team / Pentest timi" |
+| **Enhanced** | `AGENTS.md` + `skills/` + `mcp.json` + `packai.yaml` | "Gereksinimli Shopify e-ticaret asistanı", "Veritabanı denetçisi" |
+| **System** | `AGENTS.md` + `skills/` + `mcp.json` + `packai.yaml` (Workflow + Sandbox) | "3 ajanlı müşteri destek timi", "Otonom Red Team / Pentest timi" |
 
 ---
 
 ## 3. Dizin Yapısı (05.10.2026 Yeni Standart-Öncelikli Yapı)
 
-Bir `.aipack` paketi aşağıdaki dosya yapısına sahip bir dizin veya ZIP arşivdir:
+Bir `.packai` paketi aşağıdaki dosya yapısına sahip bir dizin veya ZIP arşivdir:
 
 ```
-my-pack.aipack (ZIP veya dizin)
+my-pack.packai (ZIP veya dizin)
 ├── AGENTS.md                 # Standart (AAIF): Kural ve personolar
 ├── skills/                   # Standart (Agent Skills): Prosedürel yetenekler
 │   └── <skill-ad>/
 │       └── SKILL.md
 ├── mcp.json                  # Standart (MCP): Araç ve sunucu tanımları
-└── aipack.yaml               # Bizim Katman: requirements, workflow, sandbox etiketi
-```
-
-> [!NOTE]
-> ### 📜 ESKİ MANİFEST YAPISI (ARŞİV — v1.0 / v2.0 JSON)
-> *Geriye dönük uyumluluk için CLI monolitik `manifest.json` dosyalarını da okumaya devam eder:*
-> ```
-> ~~my-pack/~~
-> ~~├── manifest.json          # Eski tekil JSON~~
-> ~~├── persona/system.md      # Eski ayrı persona~~
-> ~~└── rules/rules.md         # Eski ayrı kural~~
-> ```
-│   │   └── system.md
-│   └── specialist/
+├── knowledge/                # Opsiyonel: Bilgi bankası dokümanları
+├── agents/                   # Level 3: Uzman alt ajan sistem promptları
+│   └── <agent-id>/
 │       └── system.md
-└── assets/                # Opsiyonel. Görseller, ikonlar vb.
-    └── icon.png
+└── packai.yaml               # Bizim Katman: requirements, execution, workflow, sandbox etiketi
 ```
 
 > [!NOTE]
-> `.aipack` uzantılı dosya, bu dizinin `.zip` olarak sıkıştırılmış halidir. CLI aracı bunu otomatik yapar:
+> `.packai` uzantılı dosya, bu dizinin `.zip` olarak sıkıştırılmış halidir. CLI aracı bunu otomatik yapar:
 > ```bash
-> aipack pack ./my-pack/        # → my-pack.aipack üretir
-> aipack unpack my-pack.aipack  # → ./my-pack/ dizinine açar
+> packai pack ./my-pack/        # → my-pack-1.0.0.packai üretir
+> packai unpack my-pack.packai  # → ./my-pack/ dizinine açar
 > ```
 
 ---
@@ -364,7 +352,77 @@ Ajanlar arası mesaj akışını ve yönlendirme mantığını tanımlar.
 }
 ```
 
-### 5.7 Exports
+### 5.7 Execution (Framework & Runner Katmanı)
+
+Kod tabanlı otonom ajanları (CrewAI, LangGraph, AutoGen, Python/Node betikleri) tek komutla (`packai run`) ateşlemek için yürütme komutunu tanımlar.
+
+```yaml
+execution:
+  command: "python -m crewai run"          # Çalıştırılacak kabuk komutu
+  entrypoint: "crew.py"                    # Giriş noktası betiği
+  cwd: "."                                 # Çalışma dizini
+  env:                                     # İsteğe bağlı özel ortam değişkenleri
+    PYTHONUNBUFFERED: "1"
+```
+
+### 5.8 Skills (Agent Skills Açık Standardı)
+
+Linux Foundation AAIF ve Anthropic standardı olan `skills/<ad>/SKILL.md` yeteneklerini bağlar.
+
+```yaml
+skills:
+  - name: "nmap-audit"
+    description: "Ağ tarama ve port keşif yeteneği"
+    path: "./skills/nmap-audit/SKILL.md"
+  - name: "sqlmap-exploit"
+    description: "Otomatik SQL injection denetimi"
+    path: "./skills/sqlmap-exploit/SKILL.md"
+```
+
+### 5.9 Requirements & Pre-Flight (Doğrulanmış Kurulum)
+
+Paketin hedef sistemde çalışabilmesi için gereken işletim sistemi, RAM, ikili dosyalar (binaries), servisler ve API sırlarını (secrets) tanımlar.
+
+```yaml
+requirements:
+  platform:
+    os: ["darwin", "linux"]                # "darwin", "linux", "win32"
+    min_ram_gb: 16                         # Asgari RAM ihtiyacı
+    gpu:
+      type: "metal"                        # "metal" | "cuda" | "rocm" | "any"
+      required: false
+
+  binaries:
+    - name: "python3"
+      min_version: ">=3.11.0"
+      install:
+        brew: "brew install python@3.11"
+        apt: "apt-get install -y python3"
+    - name: "nmap"
+      install:
+        brew: "brew install nmap"
+        apt: "apt-get install -y nmap"
+
+  services:
+    - name: "docker"
+      probe_command: "docker info"
+      auto_start:
+        darwin: "open -a Docker"
+        linux: "systemctl start docker"
+
+  secrets:
+    - id: "ANTHROPIC_API_KEY"
+      label: "Anthropic API Anahtarı"
+      required: true
+      validation_regex: "^sk-ant-[a-zA-Z0-9_-]{32,}$"
+    - id: "SHODAN_API_KEY"
+      label: "Shodan API Anahtarı"
+      required: false
+
+  sandbox: "container-recommended"         # "advisory" | "container-recommended" | "microvm"
+```
+
+### 5.10 Exports
 
 Paketin hangi platformlara nasıl export edileceğini tanımlar. Bu alan **opsiyoneldir** — tanımlanmazsa CLI varsayılan export mantığını kullanır.
 
@@ -640,25 +698,28 @@ aipack install senior-go-backend@1.2.0
 ## 9. CLI Komutları (Özet)
 
 ```bash
-# Paket oluşturma
-aipack init <name>              # Yeni paket iskeleti oluştur (--level simple|enhanced|system)
-aipack init --from-existing     # [05.10.2026] Mevcut projeyi (.claude/, .cursor/, AGENTS.md, mcp.json) tara, aipack.yaml ve paket üret
-aipack validate <path>          # Manifest'i ve semantik kuralları doğrula
-aipack pack <path>              # Dizini .aipack arşivine paketle
-aipack unpack <file>            # .aipack arşivini dizine aç
+# Paket oluşturma & Tersine Mühendislik
+packai init <name>              # Yeni paket iskeleti oluştur (--level simple|enhanced|system)
+packai init --from-existing     # [05.10.2026] Mevcut projeyi (.claude/, .cursor/, AGENTS.md, mcp.json, skills/, CrewAI) tara ve paket üret
+packai validate <path>          # Manifest'i, şemayı ve semantik kuralları doğrula
+packai pack <path>              # Dizini .packai arşivine paketle
+packai unpack <file>            # .packai arşivini dizine aç
+packai info <file|path>         # Paket dosyasının ayrıntılı künyesini incele
 
-# Önkoşul Denetimi ve Enjeksiyon (Turnkey Provisioning)
-aipack apply <path|file>        # Pre-flight sistem denetimi yap, bağımlılıkları kontrol et ve Claude/Cursor'a enjekte et
-aipack diff <path|file>         # Değişiklikleri diske yazmadan görsel olarak incele
-aipack clean <path|file>        # Enjekte edilen dosyaları ve MCP araçlarını atomik olarak temizle
+# Önkoşul Denetimi, Kurulum ve Çalıştırma (Turnkey Provisioning)
+packai apply <path|file>        # Pre-flight sistem denetimi yap, bağımlılıkları kontrol et, Claude/Cursor/OpenCode/Skills kur
+packai diff <path|file>         # Değişiklikleri ve istemci yetenek matrisini görsel olarak incele
+packai run [target]             # Pre-flight ve secret enjeksiyonuyla framework/script orkestrasyonunu ateşle
+packai clean <path|file>        # Enjekte edilen dosyaları, skill'leri ve MCP araçlarını atomik olarak temizle
 
-# Platform export
-aipack export <path> --target cursor     # .cursorrules üret
-aipack export <path> --target claude     # CLAUDE.md üret
-aipack export <path> --target chatgpt    # custom_instructions.txt üret
-aipack export <path> --target agentsmd   # AGENTS.md üret (Linux Foundation AAIF Standardı)
-aipack export <path> --target windsurf   # .windsurfrules üret (Cascade)
-aipack export <path> --target roo        # .roomodes üret (Roo-Code / Cline)
+# İstemci & Eklenti Manifest İhracatı (Exporters)
+packai export <path> --target plugins      # Claude Code, Cursor ve Codex eklenti manifestlerini tek tıkla üret
+packai export <path> --target cursor       # .cursorrules ve .cursor/rules/*.mdc üret
+packai export <path> --target claude       # CLAUDE.md ve .claude/agents/*.md üret
+packai export <path> --target chatgpt      # custom_instructions.txt üret
+packai export <path> --target agentsmd     # AGENTS.md üret (Linux Foundation AAIF Standardı)
+packai export <path> --target windsurf     # .windsurfrules üret (Cascade)
+packai export <path> --target roo          # .roomodes üret (Roo-Code / Cline)
 ```
 
 ---
