@@ -92,7 +92,7 @@ program
 program
   .command('run [target]')
   .description('Audit pre-flight requirements and launch standalone framework execution runner')
-  .option('-c, --cwd <dir>', 'Working directory', '.')
+  .option('-c, --cwd <dir>', 'Working directory')
   .option('-f, --force', 'Force execution even if platform/binary checks warn')
   .action(runCommand);
 

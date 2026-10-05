@@ -54,14 +54,14 @@ export async function runCommand(target, options = {}) {
     // 3. Execution Dispatch
     const execConfig = manifest.execution;
     if (execConfig && execConfig.command) {
-      const workingDir = execConfig.cwd
-        ? resolve(dir, execConfig.cwd)
-        : (options.cwd ? resolve(options.cwd) : dir);
+      const workingDir = options.cwd
+        ? resolve(options.cwd)
+        : (execConfig.cwd ? resolve(dir, execConfig.cwd) : dir);
       console.log(chalk.bold.green(`▶ Launching: ${chalk.cyan(execConfig.command)}`));
       console.log(chalk.dim(`Working directory: ${workingDir}`));
       console.log();
 
-      return new Promise((resolvePromise, rejectPromise) => {
+      await new Promise((resolvePromise, rejectPromise) => {
         const child = spawn(execConfig.command, {
           cwd: workingDir,
           env: executionEnv,
@@ -82,10 +82,11 @@ export async function runCommand(target, options = {}) {
           } else {
             console.log();
             log.error(`Process exited with code ${code}.`);
-            rejectPromise(new Error(`Process exited with code ${code}`));
+            rejectPromise(new Error(`Exit code ${code}`));
           }
         });
       });
+      return;
     }
 
     // If no execution.command is defined, this is an IDE / Agent Orchestration Pack
