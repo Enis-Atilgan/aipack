@@ -44,7 +44,7 @@
     "license": { "type": "string" },
     "category": {
       "type": "string",
-      "enum": ["coding", "writing", "business", "legal", "education", "marketing", "data", "design", "productivity", "lifestyle", "finance", "support", "research", "other"]
+      "enum": ["coding", "writing", "business", "legal", "education", "marketing", "data", "design", "productivity", "lifestyle", "finance", "support", "research", "security", "devops", "other"]
     },
     "tags": {
       "type": "array",
@@ -144,7 +144,12 @@
           },
           "persona": { "$ref": "#/properties/persona" },
           "rules": { "$ref": "#/properties/rules" },
-          "tools": { "$ref": "#/properties/tools" },
+          "tools": {
+            "oneOf": [
+              { "$ref": "#/properties/tools" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
           "knowledge": {
             "type": "array",
             "items": {
