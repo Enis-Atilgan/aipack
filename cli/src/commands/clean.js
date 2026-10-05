@@ -106,6 +106,24 @@ export async function cleanCommand(path, options = {}) {
         }
       }
 
+      // Clean modular .cursor/rules/*.mdc
+      if (manifest.agents) {
+        for (const agent of manifest.agents) {
+          const ruleFile = join(targetDir, '.cursor', 'rules', `${agent.id}.mdc`);
+          if (existsSync(ruleFile)) {
+            unlinkSync(ruleFile);
+            console.log(`  ${chalk.red('✗ Removed:')} .cursor/rules/${agent.id}.mdc`);
+            itemsCleaned++;
+          }
+        }
+        const cursorRulesDir = join(targetDir, '.cursor', 'rules');
+        try {
+          if (existsSync(cursorRulesDir)) rmdirSync(cursorRulesDir);
+        } catch {
+          // not empty
+        }
+      }
+
       if (serverIds.length > 0) {
         const removed = unmergeMcpConfig(join(targetDir, '.cursor', 'mcp.json'), serverIds);
         if (removed > 0) {

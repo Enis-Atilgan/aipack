@@ -12,6 +12,7 @@ import { unpackCommand } from '../src/commands/unpack.js';
 import { applyCommand } from '../src/commands/apply.js';
 import { diffCommand } from '../src/commands/diff.js';
 import { cleanCommand } from '../src/commands/clean.js';
+import { infoCommand } from '../src/commands/info.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -79,5 +80,10 @@ program
   .option('-c, --cwd <dir>', 'Target project directory to clean', '.')
   .option('-f, --force', 'Force removal of modified root config files')
   .action(cleanCommand);
+
+program
+  .command('info [path]')
+  .description('Inspect detailed dossier of an .aipack archive or pack directory')
+  .action(infoCommand);
 
 program.parse();

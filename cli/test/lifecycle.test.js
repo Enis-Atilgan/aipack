@@ -60,6 +60,7 @@ describe('End-to-End Pack Lifecycle (Init -> Apply -> Clean)', () => {
     assert.equal(existsSync(join(targetDir, 'CLAUDE.md')), true, 'CLAUDE.md should be injected');
     assert.equal(existsSync(join(targetDir, '.claude', 'agents', 'worker.md')), true, 'Worker subagent should be injected');
     assert.equal(existsSync(join(targetDir, '.cursorrules')), true, '.cursorrules should be injected');
+    assert.equal(existsSync(join(targetDir, '.cursor', 'rules', 'worker.mdc')), true, 'Cursor modular rule worker.mdc should be injected');
 
     // 2. Clean
     await cleanCommand(mockPackPath, { cwd: targetDir, target: 'all' });
@@ -67,6 +68,7 @@ describe('End-to-End Pack Lifecycle (Init -> Apply -> Clean)', () => {
     assert.equal(existsSync(join(targetDir, 'CLAUDE.md')), false, 'CLAUDE.md should be cleaned');
     assert.equal(existsSync(join(targetDir, '.claude', 'agents', 'worker.md')), false, 'Worker subagent should be cleaned');
     assert.equal(existsSync(join(targetDir, '.cursorrules')), false, '.cursorrules should be cleaned');
+    assert.equal(existsSync(join(targetDir, '.cursor', 'rules', 'worker.mdc')), false, 'Cursor modular rule worker.mdc should be cleaned');
   });
 
   test('packs into .aipack archive and applies directly from the archive file', async () => {

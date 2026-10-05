@@ -219,6 +219,38 @@ export async function applyCommand(path, options = {}) {
       writeFileSync(cursorRulesPath, cursorRulesContent, 'utf-8');
       console.log(`  ${chalk.green('✓')} Injected Cursor rules: ${chalk.cyan('.cursorrules')}`);
 
+      // Level 3: Cursor modular rules (.cursor/rules/*.mdc)
+      if (manifest.level === 'system' && manifest.agents) {
+        const cursorRulesDir = join(targetDir, '.cursor', 'rules');
+        if (!existsSync(cursorRulesDir)) mkdirSync(cursorRulesDir, { recursive: true });
+
+        for (const agent of manifest.agents) {
+          let ruleContent = `---\ndescription: ${agent.description || agent.name}\nalwaysApply: true\n---\n\n`;
+          ruleContent += `# Agent: ${agent.name} (${agent.id})\n\n`;
+          if (agent.model_preference) ruleContent += `**Model Tier:** \`${agent.model_preference}\`\n\n`;
+
+          if (agent.persona?.file) {
+            try {
+              ruleContent += readFileSync(join(dir, agent.persona.file), 'utf-8') + '\n\n';
+            } catch {
+              ruleContent += (agent.persona.instructions || '') + '\n\n';
+            }
+          } else if (agent.persona?.instructions) {
+            ruleContent += agent.persona.instructions + '\n\n';
+          }
+
+          if (agent.rules?.items) {
+            ruleContent += `## Rules\n`;
+            for (const r of agent.rules.items) ruleContent += `- ${r}\n`;
+            ruleContent += '\n';
+          }
+
+          const ruleFile = join(cursorRulesDir, `${agent.id}.mdc`);
+          writeFileSync(ruleFile, ruleContent, 'utf-8');
+          console.log(`  ${chalk.green('✓')} Injected Cursor modular rule: ${chalk.cyan(`.cursor/rules/${agent.id}.mdc`)}`);
+        }
+      }
+
       // MCP config for Cursor
       if (mcpServers.length > 0) {
         const cursorMcpPath = join(targetDir, '.cursor', 'mcp.json');
