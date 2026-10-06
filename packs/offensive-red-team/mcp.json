@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "nmap-scanner": {
+      "command": "python3",
+      "args": ["-m", "mcp_server_nmap"],
+      "env": {}
+    },
+    "web-fuzzer": {
+      "command": "python3",
+      "args": ["-m", "mcp_server_fuzz"],
+      "env": {}
+    },
+    "shodan-intel": {
+      "command": "python3",
+      "args": ["-m", "mcp_server_shodan"],
+      "env": {
+        "SHODAN_API_KEY": "${SHODAN_API_KEY}"
+      }
+    }
+  }
+}

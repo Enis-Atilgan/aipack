@@ -15,6 +15,7 @@ import { cleanCommand } from '../src/commands/clean.js';
 import { infoCommand } from '../src/commands/info.js';
 import { runCommand } from '../src/commands/run.js';
 import { listCommand } from '../src/commands/list.js';
+import { traceCommand } from '../src/commands/trace.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,7 +62,9 @@ program
 
 program
   .command('apply [path]')
-  .description('Audit pre-flight requirements and provision agent system into target clients')
+  .alias('install')
+  .alias('i')
+  .description('Audit pre-flight requirements and provision agent system into target clients (alias: install, i)')
   .option('-t, --target <client>', 'Target client: all, claude, cursor, copilot, agentsmd, windsurf, roo', 'all')
   .option('-c, --cwd <dir>', 'Target project directory to provision', '.')
   .option('-i, --interactive', 'Interactively prompt for missing secrets and save to OS Keychain')
@@ -79,7 +82,9 @@ program
 
 program
   .command('clean [path]')
-  .description('Safely remove provisioned agent files and prune MCP configs')
+  .alias('uninstall')
+  .alias('un')
+  .description('Safely remove provisioned agent files and prune MCP configs (alias: uninstall, un)')
   .option('-t, --target <client>', 'Target client: all, claude, cursor, copilot, agentsmd, windsurf, roo', 'all')
   .option('-c, --cwd <dir>', 'Target project directory to clean', '.')
   .option('-f, --force', 'Force removal of modified root config files')
@@ -99,8 +104,14 @@ program
 
 program
   .command('list [path]')
-  .description('List all PackAI packs currently installed in the workspace')
+  .alias('ls')
+  .description('List all PackAI packs currently installed in the workspace (alias: ls)')
   .option('-c, --cwd <dir>', 'Project directory to inspect', '.')
   .action(listCommand);
+
+program
+  .command('trace [path]')
+  .description('Forensic inspection of files to extract invisible zero-width leak tracking signatures')
+  .action(traceCommand);
 
 program.parse();

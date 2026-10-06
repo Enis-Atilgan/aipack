@@ -164,7 +164,7 @@
     },
     "workflow": {
       "type": "object",
-      "required": ["entry", "routes"],
+      "required": ["entry"],
       "properties": {
         "entry": { "type": "string" },
         "routes": {
@@ -224,26 +224,31 @@
         "binaries": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": ["name"],
-            "properties": {
-              "name": { "type": "string" },
-              "description": { "type": "string" },
-              "min_version": { "type": "string" },
-              "version_command": { "type": "string" },
-              "install": {
+            "oneOf": [
+              { "type": "string" },
+              {
                 "type": "object",
+                "required": ["name"],
                 "properties": {
-                  "brew": { "type": "string" },
-                  "apt": { "type": "string" },
-                  "winget": { "type": "string" },
-                  "npm": { "type": "string" },
-                  "pip": { "type": "string" },
-                  "cargo": { "type": "string" },
-                  "manual": { "type": "string" }
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "min_version": { "type": "string" },
+                  "version_command": { "type": "string" },
+                  "install": {
+                    "type": "object",
+                    "properties": {
+                      "brew": { "type": "string" },
+                      "apt": { "type": "string" },
+                      "winget": { "type": "string" },
+                      "npm": { "type": "string" },
+                      "pip": { "type": "string" },
+                      "cargo": { "type": "string" },
+                      "manual": { "type": "string" }
+                    }
+                  }
                 }
               }
-            }
+            ]
           }
         },
         "services": {
@@ -275,25 +280,21 @@
         "secrets": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "string" },
-              "env": { "type": "string" },
-              "label": { "type": "string" },
-              "description": { "type": "string" },
-              "required": { "type": "boolean" },
-              "optional": { "type": "boolean" },
-              "validation_regex": { "type": "string" },
-              "test_endpoint": {
+            "oneOf": [
+              { "type": "string" },
+              {
                 "type": "object",
-                "required": ["url"],
                 "properties": {
-                  "url": { "type": "string", "format": "uri" },
-                  "method": { "type": "string", "enum": ["GET", "POST", "HEAD"] },
-                  "auth_header": { "type": "string" }
+                  "id": { "type": "string" },
+                  "env": { "type": "string" },
+                  "label": { "type": "string" },
+                  "description": { "type": "string" },
+                  "required": { "type": "boolean" },
+                  "optional": { "type": "boolean" },
+                  "validation_regex": { "type": "string" }
                 }
               }
-            }
+            ]
           }
         },
         "sandbox": {

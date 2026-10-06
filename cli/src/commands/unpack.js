@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync, chmodSync } from 'fs';
 import { resolve, basename, join } from 'path';
 import os from 'os';
-import extractZip from 'extract-zip';
+import { safeExtractZip } from '../utils/security.js';
 import { log } from '../utils/logger.js';
 
 function grantExecPermissions(dir) {
@@ -47,7 +47,7 @@ export async function unpackCommand(file, options) {
     log.item('Output', outputDir);
     console.log();
 
-    await extractZip(filePath, { dir: outputDir });
+    await safeExtractZip(filePath, outputDir);
     grantExecPermissions(outputDir);
 
     log.success(`Unpacked to ${outputDir}`);

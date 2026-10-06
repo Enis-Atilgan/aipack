@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, statSync, mkdirSync, readdirSync } from 'fs';
 import { resolve, join, basename } from 'path';
 import os from 'os';
-import extractZip from 'extract-zip';
+import { safeExtractZip, auditMcpSecurity, auditPromptInjection } from '../utils/security.js';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import YAML from 'yaml';
@@ -127,20 +127,28 @@ export function loadManifest(packPath) {
 
   // Normalize requirements
   if (manifest.requirements) {
-    // Normalize secrets: env -> id
+    // Normalize secrets: string -> { id, required: true }, or env -> id
     if (manifest.requirements.secrets && Array.isArray(manifest.requirements.secrets)) {
-      for (const sec of manifest.requirements.secrets) {
+      manifest.requirements.secrets = manifest.requirements.secrets.map(sec => {
+        if (typeof sec === 'string') {
+          return { id: sec, required: true };
+        }
         if (!sec.id && sec.env) sec.id = sec.env;
         if (sec.required === undefined && sec.optional !== undefined) {
           sec.required = !sec.optional;
         }
-      }
+        return sec;
+      });
     }
-    // Normalize binaries: minVersion -> min_version
+    // Normalize binaries: string -> { name }, or minVersion -> min_version
     if (manifest.requirements.binaries && Array.isArray(manifest.requirements.binaries)) {
-      for (const b of manifest.requirements.binaries) {
+      manifest.requirements.binaries = manifest.requirements.binaries.map(b => {
+        if (typeof b === 'string') {
+          return { name: b };
+        }
         if (!b.min_version && b.minVersion) b.min_version = b.minVersion;
-      }
+        return b;
+      });
     }
   }
 
@@ -156,7 +164,7 @@ export async function loadManifestAsync(packPath) {
   ) {
     const tempDir = join(os.tmpdir(), `packai-temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
     mkdirSync(tempDir, { recursive: true });
-    await extractZip(target, { dir: tempDir });
+    await safeExtractZip(target, tempDir);
     const { manifest, manifestPath } = loadManifest(tempDir);
     return { manifest, manifestPath, dir: tempDir, isTemp: true };
   }
@@ -196,15 +204,14 @@ export function runSemanticChecks(manifest, dir) {
   }
 
   if (manifest.level === 'enhanced') {
-    if (manifest.agents) warnings.push('Level is "enhanced" but "agents" block is defined. Consider level "system".');
+    if (manifest.agents && manifest.agents.length > 1) {
+      warnings.push('Level is "enhanced" but multiple agents are defined. Consider level "system".');
+    }
   }
 
   if (manifest.level === 'system') {
     if (!manifest.agents || manifest.agents.length === 0) {
       errors.push('Level is "system" but no agents are defined.');
-    }
-    if (!manifest.workflow) {
-      warnings.push('Level is "system" but no workflow is defined. Agents won\'t be orchestrated.');
     }
   }
 
@@ -278,6 +285,26 @@ export function runSemanticChecks(manifest, dir) {
   if (manifest.execution?.entrypoint) {
     if (!existsSync(join(dir, manifest.execution.entrypoint))) {
       errors.push(`Execution entrypoint not found: ${manifest.execution.entrypoint}`);
+    }
+  }
+
+  // Security Shield: Audit MCP tools for dangerous shell commands
+  if (manifest.tools?.mcp_servers && Array.isArray(manifest.tools.mcp_servers)) {
+    const mcpAudit = auditMcpSecurity(manifest.tools.mcp_servers);
+    if (!mcpAudit.safe) {
+      for (const threat of mcpAudit.threats) {
+        errors.push(`[SECURITY HAZARD] MCP server "${threat.server}" contains dangerous command: ${threat.threat} (${threat.command})`);
+      }
+    }
+  }
+
+  // Security Shield: Audit prompt injection & system override signatures
+  if (manifest.persona?.instructions) {
+    const promptAudit = auditPromptInjection(manifest.persona.instructions);
+    if (!promptAudit.clean) {
+      for (const w of promptAudit.warnings) {
+        warnings.push(`[SECURITY NOTICE] Persona prompt contains potential injection signature: ${w}`);
+      }
     }
   }
 

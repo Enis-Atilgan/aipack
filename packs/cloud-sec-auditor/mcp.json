@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "aws-inspector": {
+      "command": "python3",
+      "args": ["-m", "mcp_server_aws"],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}"
+      }
+    },
+    "terraform-linter": {
+      "command": "npx",
+      "args": ["-y", "@tfsec/mcp-server"],
+      "env": {}
+    }
+  }
+}

@@ -68,12 +68,23 @@ export async function runCommand(target, options = {}) {
         }
       }
 
-      console.log(chalk.bold.green(`▶ Launching: ${chalk.cyan(execConfig.command)}`));
+      let commandToRun = execConfig.command;
+      const hasReqTxt = existsSync(join(workingDir, 'requirements.txt'));
+      const hasPyProject = existsSync(join(workingDir, 'pyproject.toml'));
+      if ((hasReqTxt || hasPyProject) && preflight.host?.checkCommand('uv')) {
+        if (commandToRun.startsWith('python3 ') || commandToRun.startsWith('python ')) {
+          const script = commandToRun.replace(/^python[3]?\s+/, '');
+          log.info('Detected Python dependencies. Leveraging "uv run" for instant zero-friction execution.');
+          commandToRun = `uv run ${script}`;
+        }
+      }
+
+      console.log(chalk.bold.green(`▶ Launching: ${chalk.cyan(commandToRun)}`));
       console.log(chalk.dim(`Working directory: ${workingDir}`));
       console.log();
 
       await new Promise((resolvePromise, rejectPromise) => {
-        const child = spawn(execConfig.command, {
+        const child = spawn(commandToRun, {
           cwd: workingDir,
           env: executionEnv,
           shell: true,
