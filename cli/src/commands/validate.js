@@ -274,6 +274,13 @@ export function runSemanticChecks(manifest, dir) {
     }
   }
 
+  // Check execution entrypoint exists if specified
+  if (manifest.execution?.entrypoint) {
+    if (!existsSync(join(dir, manifest.execution.entrypoint))) {
+      errors.push(`Execution entrypoint not found: ${manifest.execution.entrypoint}`);
+    }
+  }
+
   return { errors, warnings };
 }
 

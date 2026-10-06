@@ -4,6 +4,8 @@ import { loadManifestAsync } from './validate.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToCursor } from '../exporters/cursor.js';
 import { exportToAgentsMd } from '../exporters/agentsmd.js';
+import { exportToWindsurf } from '../exporters/windsurf.js';
+import { exportToRooModes } from '../exporters/roomodes.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -21,6 +23,13 @@ export const CLIENT_CAPABILITIES = {
     supportsMcp: true,
     supportsRules: true,
     supportsWorkflowRouting: false, // Emulated via rule globs/alwaysApply
+  },
+  copilot: {
+    name: 'GitHub Copilot',
+    supportsSubagents: false,
+    supportsMcp: false,
+    supportsRules: true,
+    supportsWorkflowRouting: false,
   },
   agentsmd: {
     name: 'AGENTS.md (Zed, Copilot, Aider, Codex)',
@@ -191,6 +200,62 @@ export async function diffCommand(path, options = {}) {
         console.log(chalk.yellow(`[MODIFY] AGENTS.md`));
       } else {
         console.log(chalk.dim(`[UNCHANGED] AGENTS.md`));
+      }
+    }
+
+    // --- GitHub Copilot Inspection ---
+    if (targetClient === 'all' || targetClient === 'copilot') {
+      const copilotPath = join(targetDir, '.github', 'copilot-instructions.md');
+      const expectedCopilot = exportToAgentsMd(manifest, dir);
+      const existingCopilot = existsSync(copilotPath) ? readFileSync(copilotPath, 'utf-8') : null;
+
+      if (!existingCopilot) {
+        changesFound = true;
+        console.log(chalk.green(`[CREATE] .github/copilot-instructions.md (${expectedCopilot.length} characters)`));
+      } else if (existingCopilot !== expectedCopilot) {
+        changesFound = true;
+        console.log(chalk.yellow(`[MODIFY] .github/copilot-instructions.md`));
+      } else {
+        console.log(chalk.dim(`[UNCHANGED] .github/copilot-instructions.md`));
+      }
+    }
+
+    // --- Windsurf Cascade Inspection ---
+    if (targetClient === 'all' || targetClient === 'windsurf') {
+      const windsurfPath = join(targetDir, '.windsurfrules');
+      const expectedWindsurf = exportToWindsurf(manifest, dir);
+      const existingWindsurf = existsSync(windsurfPath) ? readFileSync(windsurfPath, 'utf-8') : null;
+
+      if (!existingWindsurf) {
+        changesFound = true;
+        console.log(chalk.green(`[CREATE] .windsurfrules (${expectedWindsurf.length} characters)`));
+      } else if (existingWindsurf !== expectedWindsurf) {
+        changesFound = true;
+        console.log(chalk.yellow(`[MODIFY] .windsurfrules`));
+      } else {
+        console.log(chalk.dim(`[UNCHANGED] .windsurfrules`));
+      }
+    }
+
+    // --- Roo-Code / Cline Inspection ---
+    if (targetClient === 'all' || targetClient === 'roo' || targetClient === 'cline') {
+      const rooPath = join(targetDir, '.roomodes');
+      const expectedRoo = exportToRooModes(manifest, dir);
+      const existingRoo = existsSync(rooPath) ? readFileSync(rooPath, 'utf-8') : null;
+
+      if (!existingRoo) {
+        changesFound = true;
+        console.log(chalk.green(`[CREATE] .roomodes (${expectedRoo.length} characters)`));
+      } else if (existingRoo !== expectedRoo) {
+        changesFound = true;
+        console.log(chalk.yellow(`[MODIFY] .roomodes`));
+      } else {
+        console.log(chalk.dim(`[UNCHANGED] .roomodes`));
+      }
+
+      if (manifest.tools?.mcp_servers && manifest.tools.mcp_servers.length > 0) {
+        console.log(chalk.cyan(`[MCP MERGE] .roo/mcp.json (+${manifest.tools.mcp_servers.length} servers)`));
+        changesFound = true;
       }
     }
 

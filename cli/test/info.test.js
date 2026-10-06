@@ -25,6 +25,14 @@ describe('AIPack Info Command', () => {
         entry: 'lead',
         routes: []
       },
+      skills: [
+        { name: 'nmap-scan', description: 'Port scanning skill', path: 'skills/nmap/SKILL.md' }
+      ],
+      execution: {
+        command: 'python3',
+        entrypoint: 'runner.py',
+        timeout_seconds: 30
+      },
       requirements: {
         platform: { os: ['darwin', 'linux'], min_ram_gb: 8 }
       }

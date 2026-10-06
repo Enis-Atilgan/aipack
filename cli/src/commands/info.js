@@ -80,6 +80,26 @@ export async function infoCommand(path, options = {}) {
       }
     }
 
+    // 6. Skills Directory / Declared Skills
+    const skills = manifest.skills || [];
+    if (skills.length > 0) {
+      console.log();
+      log.heading(`Skills (${skills.length})`);
+      for (const s of skills) {
+        console.log(`  🎯 ${chalk.bold(s.name)}: ${chalk.dim(s.description || s.path || '')}`);
+      }
+    }
+
+    // 7. Execution Runtime
+    if (manifest.execution) {
+      console.log();
+      log.heading('Execution Runtime');
+      if (manifest.execution.command) log.item('Command', manifest.execution.command);
+      if (manifest.execution.entrypoint) log.item('Entrypoint', chalk.green(manifest.execution.entrypoint));
+      if (manifest.execution.cwd) log.item('Working Directory', manifest.execution.cwd);
+      if (manifest.execution.timeout_seconds) log.item('Timeout', `${manifest.execution.timeout_seconds}s`);
+    }
+
     console.log();
 
   } catch (err) {

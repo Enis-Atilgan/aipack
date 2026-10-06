@@ -94,4 +94,22 @@ describe('Manifest Validation & Semantic Checks', () => {
     const { errors } = runSemanticChecks(manifest, '.');
     assert.ok(errors.some(e => e.includes('no agents are defined')));
   });
+
+  test('detects missing execution entrypoint in semantic checks', () => {
+    const manifest = {
+      spec_version: '2.0',
+      name: 'runner-pack',
+      version: '1.0.0',
+      description: 'Pack with missing entrypoint file.',
+      author: { name: 'hatred' },
+      level: 'simple',
+      execution: {
+        command: 'python3',
+        entrypoint: 'missing_runner.py'
+      }
+    };
+
+    const { errors } = runSemanticChecks(manifest, '/tmp');
+    assert.ok(errors.some(e => e.includes('Execution entrypoint not found: missing_runner.py')));
+  });
 });

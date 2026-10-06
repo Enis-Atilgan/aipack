@@ -11,7 +11,7 @@ export async function packCommand(path, options) {
     // Validate schema
     const result = validateManifest(manifest);
     if (!result.valid) {
-      log.error('Manifest has validation errors. Run "aipack validate" first.');
+      log.error('Manifest has validation errors. Run "packai validate" first.');
       process.exit(1);
     }
 
@@ -54,7 +54,24 @@ export async function packCommand(path, options) {
       });
 
       archive.pipe(output);
-      archive.directory(dir, false);
+      archive.glob('**/*', {
+        cwd: dir,
+        dot: true,
+        ignore: [
+          'node_modules/**',
+          '.git/**',
+          '**/.DS_Store',
+          '.next/**',
+          'dist/**',
+          'build/**',
+          'coverage/**',
+          '*.packai',
+          '*.aipack',
+          '*.zip',
+          '.packai/lock.json',
+          '.packai/cache/**'
+        ]
+      });
       archive.finalize();
     });
 
