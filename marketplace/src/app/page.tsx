@@ -193,7 +193,7 @@ export default function Home() {
           <div className="text-center">
             <div className="text-4xl mb-4">📥</div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">2. Install</h3>
-            <p className="text-gray-600 dark:text-gray-400">One command or one click. Export to Cursor, Claude, ChatGPT, or download the raw .aipack file.</p>
+            <p className="text-gray-600 dark:text-gray-400">One command or one click. Export to Cursor, Claude, ChatGPT, or download the raw .packai file.</p>
           </div>
           <div className="text-center">
             <div className="text-4xl mb-4">🚀</div>
@@ -293,7 +293,7 @@ export default function Home() {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>© 2026 AIPack. Open format, open source CLI. Built for the AI community.</p>
+            <p>© 2026 PackAI. Open format, open source CLI. Built for the AI community.</p>
           </div>
         </div>
       </footer>

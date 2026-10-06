@@ -61,8 +61,9 @@ CREATE TABLE public.pack_versions (
   version TEXT NOT NULL,                        -- semver: "1.0.0"
   manifest JSONB NOT NULL,                      -- Full manifest.json content
   readme TEXT,                                  -- README.md content
-  file_url TEXT,                                -- .aipack file download URL
+  file_url TEXT,                                -- .packai file download URL
   file_size_bytes BIGINT DEFAULT 0,
+  checksum_sha256 TEXT,                         -- SHA-256 integrity hash for bitrot & tamper defense
   changelog TEXT,                               -- What changed in this version
   
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -75,8 +76,8 @@ CREATE TABLE public.downloads (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   pack_id UUID REFERENCES public.packs(id) ON DELETE CASCADE NOT NULL,
   version_id UUID REFERENCES public.pack_versions(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  target_platform TEXT CHECK (target_platform IN ('cursor', 'claude', 'chatgpt', 'raw')),
+  user_id REFERENCES public.profiles(id) ON DELETE SET NULL,
+  target_platform TEXT CHECK (target_platform IN ('cursor', 'claude', 'chatgpt', 'raw', 'packai', 'copilot', 'windsurf', 'roo', 'plugins')),
   ip_hash TEXT,                                 -- Hashed IP for dedup, not raw IP
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

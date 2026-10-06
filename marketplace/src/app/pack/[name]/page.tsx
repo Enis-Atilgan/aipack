@@ -36,7 +36,7 @@ const MOCK_PACKS: Record<string, {
     language: 'en',
     createdAt: '2026-08-15',
     updatedAt: '2026-09-28',
-    readme: `# Senior Go Backend\n\nA comprehensive AI configuration pack for Go backend development.\n\n## What's included\n\n- **Persona**: Senior Go engineer with 10+ years of experience\n- **Rules**: 6 strict coding rules for idiomatic Go\n- **Focus areas**: DDD, clean architecture, table-driven tests\n\n## Usage\n\n\`\`\`bash\naipack install senior-go-backend\naipack export . --target cursor\n\`\`\`\n\n## Rules\n\n1. Always prefer stdlib over third-party packages\n2. Never use panic() for error handling\n3. Use table-driven tests for all public functions\n4. Context must be the first parameter for I/O functions\n5. All SQL must use parameterized queries\n6. Options struct for functions with 3+ parameters`,
+    readme: `# Senior Go Backend\n\nA comprehensive AI configuration pack for Go backend development.\n\n## What's included\n\n- **Persona**: Senior Go engineer with 10+ years of experience\n- **Rules**: 6 strict coding rules for idiomatic Go\n- **Focus areas**: DDD, clean architecture, table-driven tests\n\n## Usage\n\n\`\`\`bash\npackai apply senior-go-backend\n\`\`\`\n\n## Rules\n\n1. Always prefer stdlib over third-party packages\n2. Never use panic() for error handling\n3. Use table-driven tests for all public functions\n4. Context must be the first parameter for I/O functions\n5. All SQL must use parameterized queries\n6. Options struct for functions with 3+ parameters`,
     manifest: {
       spec_version: '1.0',
       name: 'senior-go-backend',
@@ -94,7 +94,7 @@ export default async function PackDetailPage({ params }: { params: Promise<{ nam
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl">📦</span>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">AIPack</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">PackAI</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/browse" className="text-sm text-gray-600 dark:text-gray-300">Browse</Link>

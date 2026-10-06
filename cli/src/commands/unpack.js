@@ -1,7 +1,23 @@
-import { existsSync } from 'fs';
-import { resolve, basename } from 'path';
+import { existsSync, readdirSync, statSync, chmodSync } from 'fs';
+import { resolve, basename, join } from 'path';
+import os from 'os';
 import extractZip from 'extract-zip';
 import { log } from '../utils/logger.js';
+
+function grantExecPermissions(dir) {
+  if (os.platform() === 'win32') return;
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const ent of entries) {
+      const full = join(dir, ent.name);
+      if (ent.isDirectory()) {
+        grantExecPermissions(full);
+      } else if (ent.isFile() && (ent.name.endsWith('.sh') || ent.name.endsWith('.bash') || ent.name.endsWith('.py'))) {
+        try { chmodSync(full, 0o755); } catch {}
+      }
+    }
+  } catch {}
+}
 
 export async function unpackCommand(file, options) {
   try {
@@ -32,12 +48,14 @@ export async function unpackCommand(file, options) {
     console.log();
 
     await extractZip(filePath, { dir: outputDir });
+    grantExecPermissions(outputDir);
 
     log.success(`Unpacked to ${outputDir}`);
-    log.dim(`  Run: aipack validate ${outputDir}`);
+    log.dim(`  Run: packai validate ${outputDir}`);
 
   } catch (err) {
     log.error(err.message);
     process.exit(1);
   }
 }
+

@@ -1,6 +1,6 @@
-import { writeFileSync } from 'fs';
+import { writeFileSync, existsSync, rmSync } from 'fs';
 import { resolve } from 'path';
-import { loadManifest, validateManifest } from './validate.js';
+import { loadManifestAsync, validateManifest } from './validate.js';
 import { exportToCursor } from '../exporters/cursor.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToChatGPT } from '../exporters/chatgpt.js';
@@ -35,6 +35,9 @@ const PLUGIN_EXPORTERS = {
 };
 
 export async function exportCommand(path, options) {
+  let packDir = null;
+  let isTempDir = false;
+
   try {
     const target = options.target.toLowerCase();
 
@@ -50,7 +53,9 @@ export async function exportCommand(path, options) {
       process.exit(1);
     }
 
-    const { manifest, dir } = loadManifest(path);
+    const { manifest, dir, isTemp } = await loadManifestAsync(path);
+    packDir = dir;
+    isTempDir = isTemp;
 
     // Quick validation
     const result = validateManifest(manifest);
@@ -97,5 +102,12 @@ export async function exportCommand(path, options) {
   } catch (err) {
     log.error(err.message);
     process.exit(1);
+  } finally {
+    if (isTempDir && packDir && existsSync(packDir)) {
+      try {
+        rmSync(packDir, { recursive: true, force: true });
+      } catch {}
+    }
   }
 }
+

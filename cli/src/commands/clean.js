@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync, rmdirSync, rmSync 
 import { resolve, join } from 'path';
 import os from 'os';
 import { loadManifestAsync } from './validate.js';
+import { recordPackRemoved } from '../utils/lockfile.js';
 import { log } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -166,6 +167,20 @@ export async function cleanCommand(path, options = {}) {
       }
     }
 
+    // --- Clean GitHub Copilot ---
+    if (targetClient === 'all' || targetClient === 'copilot') {
+      const copilotPath = join(targetDir, '.github', 'copilot-instructions.md');
+      if (existsSync(copilotPath)) {
+        const content = readFileSync(copilotPath, 'utf-8');
+        const isPackGenerated = (content.includes('aipack') && content.includes(manifest.name)) || options.force;
+        if (isPackGenerated) {
+          unlinkSync(copilotPath);
+          console.log(`  ${chalk.red('✗ Removed:')} .github/copilot-instructions.md`);
+          itemsCleaned++;
+        }
+      }
+    }
+
     // --- Clean Windsurf ---
     if (targetClient === 'all' || targetClient === 'windsurf') {
       const windsurfPath = join(targetDir, '.windsurfrules');
@@ -249,6 +264,9 @@ export async function cleanCommand(path, options = {}) {
         if (existsSync(packaiDir)) rmdirSync(packaiDir);
       } catch {}
     }
+
+    // --- Update Lockfile ---
+    recordPackRemoved(targetDir, manifest.name);
 
     console.log();
     if (itemsCleaned > 0) {

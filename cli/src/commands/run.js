@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { resolve, join } from 'path';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, chmodSync } from 'fs';
 import os from 'os';
 import chalk from 'chalk';
 import { loadManifestAsync } from './validate.js';
@@ -57,6 +57,17 @@ export async function runCommand(target, options = {}) {
       const workingDir = options.cwd
         ? resolve(options.cwd)
         : (execConfig.cwd ? resolve(dir, execConfig.cwd) : dir);
+
+      // Auto-grant execute permission on entrypoint if on Unix-like OS
+      if (os.platform() !== 'win32' && execConfig.entrypoint) {
+        const entryPath = resolve(workingDir, execConfig.entrypoint);
+        if (existsSync(entryPath)) {
+          try {
+            chmodSync(entryPath, 0o755);
+          } catch {}
+        }
+      }
+
       console.log(chalk.bold.green(`▶ Launching: ${chalk.cyan(execConfig.command)}`));
       console.log(chalk.dim(`Working directory: ${workingDir}`));
       console.log();

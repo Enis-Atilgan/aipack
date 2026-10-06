@@ -161,7 +161,7 @@ export default function BrowsePage() {
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-2xl">📦</span>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">AIPack</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">PackAI</span>
             </Link>
           </div>
           <div className="flex items-center gap-4">

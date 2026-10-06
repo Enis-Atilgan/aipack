@@ -14,6 +14,7 @@ import { diffCommand } from '../src/commands/diff.js';
 import { cleanCommand } from '../src/commands/clean.js';
 import { infoCommand } from '../src/commands/info.js';
 import { runCommand } from '../src/commands/run.js';
+import { listCommand } from '../src/commands/list.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,9 +42,9 @@ program
 
 program
   .command('export [path]')
-  .description('Export pack to a target platform')
-  .requiredOption('-t, --target <platform>', 'Target platform: cursor, claude, chatgpt, agentsmd, windsurf, roo')
-  .option('-o, --output <file>', 'Output file path')
+  .description('Export pack to a target platform or generate plugin manifests')
+  .requiredOption('-t, --target <platform>', 'Target platform: cursor, claude, chatgpt, agentsmd, windsurf, roo, plugins')
+  .option('-o, --output <path>', 'Output file or directory path')
   .action(exportCommand);
 
 program
@@ -61,7 +62,7 @@ program
 program
   .command('apply [path]')
   .description('Audit pre-flight requirements and provision agent system into target clients')
-  .option('-t, --target <client>', 'Target client: all, claude, cursor, agentsmd, windsurf, roo', 'all')
+  .option('-t, --target <client>', 'Target client: all, claude, cursor, copilot, agentsmd, windsurf, roo', 'all')
   .option('-c, --cwd <dir>', 'Target project directory to provision', '.')
   .option('-i, --interactive', 'Interactively prompt for missing secrets and save to OS Keychain')
   .option('--auto-install', 'Attempt automatic installation of missing dependencies via package manager')
@@ -72,14 +73,14 @@ program
 program
   .command('diff [path]')
   .description('Visual non-destructive preview of changes and client capability audit before applying')
-  .option('-t, --target <client>', 'Target client: all, claude, cursor, agentsmd, windsurf, roo', 'all')
+  .option('-t, --target <client>', 'Target client: all, claude, cursor, copilot, agentsmd, windsurf, roo', 'all')
   .option('-c, --cwd <dir>', 'Target project directory to inspect', '.')
   .action(diffCommand);
 
 program
   .command('clean [path]')
   .description('Safely remove provisioned agent files and prune MCP configs')
-  .option('-t, --target <client>', 'Target client: all, claude, cursor, agentsmd, windsurf, roo', 'all')
+  .option('-t, --target <client>', 'Target client: all, claude, cursor, copilot, agentsmd, windsurf, roo', 'all')
   .option('-c, --cwd <dir>', 'Target project directory to clean', '.')
   .option('-f, --force', 'Force removal of modified root config files')
   .action(cleanCommand);
@@ -95,5 +96,11 @@ program
   .option('-c, --cwd <dir>', 'Working directory')
   .option('-f, --force', 'Force execution even if platform/binary checks warn')
   .action(runCommand);
+
+program
+  .command('list [path]')
+  .description('List all PackAI packs currently installed in the workspace')
+  .option('-c, --cwd <dir>', 'Project directory to inspect', '.')
+  .action(listCommand);
 
 program.parse();

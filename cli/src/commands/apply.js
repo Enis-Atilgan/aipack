@@ -5,6 +5,7 @@ import { execSync } from 'child_process';
 import { loadManifestAsync, validateManifest, runSemanticChecks } from './validate.js';
 import { runPreflight } from '../utils/preflight.js';
 import { getCredential, setCredential } from '../utils/credentials.js';
+import { recordPackApplied } from '../utils/lockfile.js';
 import { exportToClaude } from '../exporters/claude.js';
 import { exportToCursor } from '../exporters/cursor.js';
 import { exportToAgentsMd } from '../exporters/agentsmd.js';
@@ -200,12 +201,15 @@ export async function applyCommand(path, options = {}) {
     log.heading('Provisioning AI Runtimes');
 
     const mcpServers = manifest.tools?.mcp_servers || [];
+    const trackedFiles = [];
+    const trackedSkills = [];
 
     // --- Claude Code / Desktop Injection ---
     if (targetClient === 'all' || targetClient === 'claude') {
       const claudeMdContent = exportToClaude(manifest, dir);
       const claudeMdPath = join(targetDir, 'CLAUDE.md');
       writeFileSync(claudeMdPath, claudeMdContent, 'utf-8');
+      trackedFiles.push('CLAUDE.md');
       console.log(`  ${chalk.green('✓')} Injected master protocol: ${chalk.cyan('CLAUDE.md')}`);
 
       // Level 3: Subagents (conforms to Claude Code 2026 isolated subprocess spec)
@@ -237,6 +241,7 @@ export async function applyCommand(path, options = {}) {
 
           const agentFile = join(agentsDir, `${agent.id}.md`);
           writeFileSync(agentFile, agentContent, 'utf-8');
+          trackedFiles.push(`.claude/agents/${agent.id}.md`);
           console.log(`  ${chalk.green('✓')} Injected subagent: ${chalk.cyan(`.claude/agents/${agent.id}.md`)}`);
         }
       }
@@ -245,10 +250,12 @@ export async function applyCommand(path, options = {}) {
       if (mcpServers.length > 0) {
         const rootMcpPath = join(targetDir, '.mcp.json');
         mergeMcpConfig(rootMcpPath, mcpServers);
+        trackedFiles.push('.mcp.json');
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.mcp.json')} (Claude Code standard)`);
 
         const claudeMcpPath = join(targetDir, '.claude', 'settings.json');
         mergeMcpConfig(claudeMcpPath, mcpServers);
+        trackedFiles.push('.claude/settings.json');
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.claude/settings.json')}`);
 
         // Native Claude Desktop App (Free tier supported!)
@@ -267,6 +274,7 @@ export async function applyCommand(path, options = {}) {
       const cursorRulesContent = exportToCursor(manifest, dir);
       const cursorRulesPath = join(targetDir, '.cursorrules');
       writeFileSync(cursorRulesPath, cursorRulesContent, 'utf-8');
+      trackedFiles.push('.cursorrules');
       console.log(`  ${chalk.green('✓')} Injected Cursor rules: ${chalk.cyan('.cursorrules')}`);
 
       // Level 3: Cursor modular rules (.cursor/rules/*.mdc)
@@ -305,6 +313,7 @@ export async function applyCommand(path, options = {}) {
 
           const ruleFile = join(cursorRulesDir, `${agent.id}.mdc`);
           writeFileSync(ruleFile, ruleContent, 'utf-8');
+          trackedFiles.push(`.cursor/rules/${agent.id}.mdc`);
           console.log(`  ${chalk.green('✓')} Injected Cursor modular rule: ${chalk.cyan(`.cursor/rules/${agent.id}.mdc`)}`);
         }
       }
@@ -313,6 +322,7 @@ export async function applyCommand(path, options = {}) {
       if (mcpServers.length > 0) {
         const cursorMcpPath = join(targetDir, '.cursor', 'mcp.json');
         mergeMcpConfig(cursorMcpPath, mcpServers);
+        trackedFiles.push('.cursor/mcp.json');
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.cursor/mcp.json')}`);
       }
     }
@@ -322,7 +332,19 @@ export async function applyCommand(path, options = {}) {
       const agentsMdContent = exportToAgentsMd(manifest, dir);
       const agentsMdPath = join(targetDir, 'AGENTS.md');
       writeFileSync(agentsMdPath, agentsMdContent, 'utf-8');
+      trackedFiles.push('AGENTS.md');
       console.log(`  ${chalk.green('✓')} Injected universal spec: ${chalk.cyan('AGENTS.md')} (Copilot/Zed/Aider/Codex)`);
+    }
+
+    // --- GitHub Copilot Native Instructions ---
+    if (targetClient === 'all' || targetClient === 'copilot') {
+      const copilotDir = join(targetDir, '.github');
+      if (!existsSync(copilotDir)) mkdirSync(copilotDir, { recursive: true });
+      const copilotContent = exportToAgentsMd(manifest, dir);
+      const copilotPath = join(copilotDir, 'copilot-instructions.md');
+      writeFileSync(copilotPath, copilotContent, 'utf-8');
+      trackedFiles.push('.github/copilot-instructions.md');
+      console.log(`  ${chalk.green('✓')} Injected GitHub Copilot instructions: ${chalk.cyan('.github/copilot-instructions.md')}`);
     }
 
     // --- Windsurf Cascade Injection ---
@@ -330,6 +352,7 @@ export async function applyCommand(path, options = {}) {
       const windsurfContent = exportToWindsurf(manifest, dir);
       const windsurfPath = join(targetDir, '.windsurfrules');
       writeFileSync(windsurfPath, windsurfContent, 'utf-8');
+      trackedFiles.push('.windsurfrules');
       console.log(`  ${chalk.green('✓')} Injected Windsurf rules: ${chalk.cyan('.windsurfrules')}`);
     }
 
@@ -338,11 +361,13 @@ export async function applyCommand(path, options = {}) {
       const rooContent = exportToRooModes(manifest, dir);
       const rooPath = join(targetDir, '.roomodes');
       writeFileSync(rooPath, rooContent, 'utf-8');
+      trackedFiles.push('.roomodes');
       console.log(`  ${chalk.green('✓')} Injected Roo/Cline modes: ${chalk.cyan('.roomodes')}`);
 
       if (mcpServers.length > 0) {
         const rooMcpPath = join(targetDir, '.roo', 'mcp.json');
         mergeMcpConfig(rooMcpPath, mcpServers);
+        trackedFiles.push('.roo/mcp.json');
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('.roo/mcp.json')}`);
       }
     }
@@ -365,6 +390,7 @@ export async function applyCommand(path, options = {}) {
           };
         }
         writeFileSync(opencodePath, JSON.stringify(existing, null, 2), 'utf-8');
+        trackedFiles.push('opencode.json');
         console.log(`  ${chalk.green('✓')} Wired ${mcpServers.length} MCP servers into: ${chalk.cyan('opencode.json')}`);
       }
     }
@@ -380,6 +406,8 @@ export async function applyCommand(path, options = {}) {
             const destSkillDir = join(targetDir, 'skills', sEnt.name);
             mkdirSync(destSkillDir, { recursive: true });
             cpSync(join(packSkillsDir, sEnt.name), destSkillDir, { recursive: true });
+            trackedSkills.push(sEnt.name);
+            trackedFiles.push(`skills/${sEnt.name}/SKILL.md`);
             skillsCount++;
           }
         }
@@ -398,6 +426,7 @@ export async function applyCommand(path, options = {}) {
         const destKnowledgeDir = join(targetDir, '.packai', 'knowledge');
         mkdirSync(destKnowledgeDir, { recursive: true });
         cpSync(packKnowledgeDir, destKnowledgeDir, { recursive: true });
+        trackedFiles.push('.packai/knowledge');
         console.log(`  ${chalk.green('✓')} Injected Knowledge Base into: ${chalk.cyan('.packai/knowledge/')}`);
       } catch (err) {
         log.warn(`Could not provision knowledge: ${err.message}`);
@@ -408,6 +437,17 @@ export async function applyCommand(path, options = {}) {
     if (manifest.execution?.command) {
       console.log(`  ${chalk.cyan('ℹ')} Framework Execution Trigger: run with ${chalk.bold.yellow('packai run')}`);
     }
+
+    // --- Record Pack in Lockfile ---
+    recordPackApplied(targetDir, {
+      name: manifest.name,
+      version: manifest.version,
+      level: manifest.level,
+      targetClient,
+      filesCreated: trackedFiles,
+      mcpServers: mcpServers.map(s => s.id || s.name),
+      skills: trackedSkills
+    });
 
     console.log();
     log.success(`Turnkey provisioning complete! Your agent system is ready.`);
