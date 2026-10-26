@@ -12,6 +12,11 @@ out/
 build/
 dist/
 
+# PackAI local runtime and bundles
+.packai/
+*.packai
+*.aipack
+
 # Environment Variables
 .env
 .env*.local
