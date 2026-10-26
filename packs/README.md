@@ -1,37 +1,56 @@
-# 📦 PackAI Official Seed Packs (`packs/`)
+# 📦 PackAI Packs Directory (`packs/`)
 
-This directory houses the official, certified PackAI turnkey packs.
+This directory is designated for organizing and developing self-contained, shareable PackAI bundles.
 
-## 🏛️ Directory Structure
+## 🏛️ Anatomy of a Pack
 
-Each subfolder represents an autonomous, self-contained pack:
+Every pack is an autonomous directory adhering to open standards (`AGENTS.md`, `mcp.json`, `skills/`):
 
+```text
+my-pack/
+├── packai.yaml               # PackAI Manifest: Metadata, requirements & execution config
+├── AGENTS.md                 # Universal Agent Rules (Linux Foundation AAIF format)
+├── mcp.json                  # Model Context Protocol tool configurations
+├── skills/                   # Modular Agent Skills (SKILL.md)
+│   └── my-skill/
+│       └── SKILL.md
+└── knowledge/                # Physical context documents & reference material
 ```
-packs/
-├── offensive-red-team/          # Level 3: Autonomous Cyber Warfare & Vulnerability Mesh
-├── fullstack-nextjs-architect/  # Level 3: Enterprise SaaS Multi-Agent Workforce
-└── cloud-sec-auditor/           # Level 2: Cloud Infrastructure & Terraform Guardian
-```
 
-## 📐 Pack Levels
+## 📐 Pack Classification
 
-- **Level 1 (Simple):** `AGENTS.md` persona, directives and coding style rules.
-- **Level 2 (Enhanced):** `AGENTS.md` + `skills/` + `mcp.json` + `packai.yaml` (system requirements, binaries, secrets).
-- **Level 3 (System):** `AGENTS.md` + `skills/` + `mcp.json` + `packai.yaml` (workflow routing, coordinator-specialist-auditor mesh, execution runner).
+PackAI categorizes packs into 3 capability tiers:
 
-## 🛠️ Verification & Building
+| Level | Name | Composition | Typical Use Case |
+| :--- | :--- | :--- | :--- |
+| **Level 1** | **Simple** | `AGENTS.md` (Persona + Rules) | Coding guidelines, style guides, framework rules |
+| **Level 2** | **Enhanced** | `AGENTS.md` + `skills/` + `mcp.json` + `packai.yaml` | Tool-augmented assistants (e.g. database query bot, API helper) |
+| **Level 3** | **System** | `AGENTS.md` + `skills/` + `mcp.json` + `packai.yaml` (Workflow + Multi-Agent Mesh) | Full multi-agent squads (Architect, Specialist, Auditor meshes) |
 
-To validate a pack:
+## 🛠️ Authoring & Verification Commands
+
+### 1. Scaffold a New Pack
 ```bash
-packai validate ./packs/<pack-name>
+packai init my-pack --level enhanced --category coding
 ```
 
-To compile into a `.packai` bundle:
+### 2. Validate Pack Manifest & Companion Files
 ```bash
-packai pack ./packs/<pack-name> --output dist/<pack-name>.packai
+packai validate ./packs/my-pack
 ```
 
-To test locally:
+### 3. Compile into a `.packai` Archive
 ```bash
-packai apply ./packs/<pack-name> --cwd /tmp/test-project
+packai pack ./packs/my-pack
+# Creates: my-pack-1.0.0.packai (ZIP container)
+```
+
+### 4. Test Deployment Against a Target Project
+```bash
+packai apply ./packs/my-pack --cwd /path/to/test-project
+```
+
+### 5. Safe De-Provisioning
+```bash
+packai clean ./packs/my-pack --cwd /path/to/test-project
 ```

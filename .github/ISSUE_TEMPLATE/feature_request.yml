@@ -1,0 +1,34 @@
+name: Feature / Framework Request
+description: Propose a new feature, runtime exporter, or framework ingestion support
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for a new client exporter (e.g., new IDE), framework reverse-engineering, or workflow capability? Let's discuss it!
+  - type: input
+    id: title
+    attributes:
+      label: Proposal Title
+      placeholder: "e.g. Support reverse-engineering Mastra agent projects"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What friction or missing capability does this proposal address?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / Technical Design
+      description: Describe how the CLI should ingest, validate, or provision this capability.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any workarounds or existing tools?
