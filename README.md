@@ -1,204 +1,307 @@
 <div align="center">
 
-# 🐺 PackAI
+# PackAI (`packai`)
 
-### The Package Manager & Cross-Client Distribution Layer for AI Agent Systems
+**The Universal Package Manager & Cross-Client Distribution Layer for AI Agents**
 
 [![CI](https://github.com/Enis-Atilgan/aipack/actions/workflows/ci.yml/badge.svg)](https://github.com/Enis-Atilgan/aipack/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-41%20passing-emerald.svg)](#-verification--tests)
-[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-cyan.svg)](https://nodejs.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](./LICENSE)
-[![Standards: AAIF & MCP](https://img.shields.io/badge/standards-AAIF%20%7C%20MCP%20%7C%20SKILLS-amber.svg)](#-open-standards-architecture)
+[![Test Suite](https://img.shields.io/badge/tests-41%20passing-10b981.svg?style=flat-square)](#-test-verification)
+[![Node Runtime](https://img.shields.io/badge/node-%3E%3D18.0.0-06b6d4.svg?style=flat-square)](https://nodejs.org)
+[![License](https://img.shields.io/badge/license-MIT-8b5cf6.svg?style=flat-square)](./LICENSE)
+[![Specification](https://img.shields.io/badge/spec-AAIF%20%7C%20MCP%20%7C%20SKILLS-f59e0b.svg?style=flat-square)](#-open-standards-architecture)
 
-**Pack, verify, and provision complete AI agent workforces across any IDE in a single command.**  
-*Native support for Linux Foundation `AGENTS.md`, Anthropic `MCP`, and `SKILL.md`.*
+<br>
 
-[Quick Start](#-quick-start) • [Supported Clients](#-supported-clients--target-matrix) • [Architecture](#-open-standards-architecture) • [Security & Audit](#-security-shield--audit) • [CLI Reference](#-cli-command-reference)
+```
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                           PACKAI BUNDLE                                │
+  │    AGENTS.md (AAIF) + skills/ (Skills) + mcp.json (MCP Servers)        │
+  │    + packai.yaml (Pre-flight, OS Requirements, Workflow & Secrets)     │
+  └──────────────┬──────────────────────────┬──────────────────────────────┘
+                 │                          │
+        (Atomic Provisioning)      (Atomic Provisioning)
+                 ▼                          ▼
+     ┌───────────────────────┐  ┌───────────────────────┐
+     │      Claude Code      │  │        Cursor         │
+     │  .claude/agents/*.md  │  │  .cursor/rules/*.mdc  │
+     │  CLAUDE.md            │  │  .cursor/mcp.json     │
+     │  .mcp.json            │  │  .cursorrules         │
+     │  skills/              │  │  AGENTS.md            │
+     └───────────────────────┘  └───────────────────────┘
+```
+
+<br>
+
+[The Problem](#-the-problem) • [How It Works](#-how-it-works) • [Quick Start](#-quick-start) • [Target Matrix](#-supported-targets) • [Security](#-security-shield) • [Comparison](#-comparison) • [CLI Reference](#-command-reference)
 
 ---
 
 </div>
 
-## ⚡ Why PackAI?
+## 📌 The Problem
 
-Sharing and deploying AI agent setups today is completely fragmented:
+Modern AI setups have outgrown single-file prompt templates:
 
-* **Tribal Configuration:** A production-grade setup requires coordinating project rules (`AGENTS.md`, `.cursorrules`), subagent personas (`.claude/agents/*.md`), tool definitions (`mcp.json`), and executable skills. Sharing it means manually copy-pasting hundreds of lines across disconnected dotfiles.
-* **Brittle Runtime Setup:** When an agent relies on specific binaries (`uv`, `docker`, `python3`) or local services, team members fail at prerequisite installation.
-* **Client Lock-In:** Moving from Cursor to Claude Code, Windsurf, or Copilot requires manually re-architecting your agent configurations from scratch.
+1. **Fragmented Configs:** A production-grade multi-agent setup coordinates project rules (`AGENTS.md`, `.cursorrules`), subagent personas (`.claude/agents/*.md`), MCP server definitions (`mcp.json`), and executable tools (`skills/`). Sharing this setup requires manual copy-pasting across dozens of dotfiles.
+2. **Brittle Prerequisites:** If an agent relies on specific binaries (`uv`, `docker`, `python3`) or environment variables, teammates inevitably fail during manual setup.
+3. **Platform Lock-In:** A workflow tailored for Cursor cannot be run in Claude Code, Windsurf, or GitHub Copilot without manually converting rules and re-wiring tool servers.
 
-### The PackAI Solution
+## 💡 How It Works
 
-PackAI bundles rules, multi-agent hierarchies, tools, and dependencies into verified `.packai` archives:
+PackAI acts as **npm + Docker for AI agent systems**:
 
-```bash
-# 1. Reverse-engineer your existing setup into a standard bundle in 2 seconds:
-packai init --from-existing
-
-# 2. Compile into a verified, standalone container:
-packai pack . --output my-team.packai
-
-# 3. Provision atomically onto any target project or client:
-packai apply my-team.packai --cwd /path/to/target-project
-```
-
-PackAI audits host requirements (OS, RAM, package managers, binaries), safely resolves credentials into the host Keychain, and injects native, atomic configuration files tailored to each target environment.
+* **Universal Container:** Packages open standards—Linux Foundation `AGENTS.md`, Anthropic `mcp.json`, and `SKILL.md`—into a self-contained, validated `.packai` ZIP archive.
+* **Pre-Flight System Audit:** Verifies host OS, available RAM, package managers (`brew`, `apt`, `npm`, `pip`, `uv`), and required binaries before writing files.
+* **Turnkey Provisioning:** Atomically injects native config files into Claude Code, Cursor, Windsurf, Roo-Code, and Copilot.
+* **Safe De-Provisioning:** Tracks every injected file in `.packai/lock.json`. Running `packai clean` removes provisioned files and prunes MCP servers without touching unrelated project files.
 
 ---
 
-## 🎯 Supported Clients & Target Matrix
-
-PackAI is client-agnostic. A single `.packai` bundle automatically translates into native configurations for your team's tools:
-
-| Target Client | Native Configuration Injected | MCP Tools Wired | Subagent Isolation |
-| :--- | :--- | :---: | :---: |
-| **Claude Code** | `CLAUDE.md`, `.claude/agents/*.md`, `skills/` | `.mcp.json` + `settings.json` | ✅ Native subagents |
-| **Cursor** | `.cursorrules`, `.cursor/rules/*.mdc` (glob-filtered) | `.cursor/mcp.json` | Emulated via `.mdc` |
-| **Windsurf** | `.windsurfrules` | Cascade MCP config | Flattened rules |
-| **Roo-Code / Cline** | `.roomodes` (custom modes) | `.roo/mcp.json` | ✅ Mode-isolated |
-| **GitHub Copilot** | `.github/copilot-instructions.md` | Via VS Code workspace | Context rules |
-| **OpenCode & Zed** | `AGENTS.md` (AAIF standard) | `opencode.json` | Universal spec |
-
----
-
-## 🏛️ Open Standards Architecture
-
-PackAI does not invent proprietary prompt formats. It sits directly on top of established open standards:
-
-```text
-my-pack.packai (ZIP Archive)
-├── packai.yaml               # Manifest: metadata, requirements, workflow & secrets
-├── AGENTS.md                 # Linux Foundation AAIF specification
-├── mcp.json                  # Model Context Protocol tool configurations
-├── skills/                   # Agent Skills specification (SKILL.md)
-│   └── code-auditor/
-│       └── SKILL.md
-└── knowledge/                # Physical context documents & references
-```
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                          PACKAI BUNDLE                                 │
-│      AGENTS.md (AAIF) + skills/ (Skills) + mcp.json (MCP)              │
-│      + packai.yaml (Requirements, Secrets, Workflow)                   │
-└──────────────┬──────────────────────────┬──────────────────────────────┘
-               │                          │
-      (Atomic Provisioning)      (Atomic Provisioning)
-               ▼                          ▼
-   ┌───────────────────────┐  ┌───────────────────────┐
-   │      Claude Code      │  │        Cursor         │
-   │  .claude/agents/*.md  │  │  .cursor/rules/*.mdc  │
-   │  CLAUDE.md            │  │  .cursor/mcp.json     │
-   │  .mcp.json            │  │  .cursorrules         │
-   │  skills/              │  │  AGENTS.md            │
-   └───────────────────────┘  └───────────────────────┘
-```
-
-* **Living Above the Platforms:** PackAI configures runtimes rather than competing with them.
-* **Atomic De-Provisioning:** PackAI records every injected file in `.packai/lock.json`. Running `packai clean` removes provisioned files and prunes MCP servers cleanly without touching unrelated project code.
-
----
-
-## 🛠️ Quick Start
+## ⚡ Quick Start
 
 ### 1. Installation
 
-Install globally via npm or run directly with `npx`:
-
 ```bash
+# Install globally via npm:
 npm install -g packai
+
+# Or run instantly with npx:
+npx packai --help
 ```
 
-### 2. Package an Existing Workspace
+### 2. Reverse-Engineer an Existing Project (2 Seconds)
 
-Turn your current developer setup (`.claude/`, `.cursor/`, `mcp.json`, `skills/`, `AGENTS.md`) into a shareable bundle:
+Inspect your current repository (`.claude/`, `.cursor/`, `mcp.json`, `skills/`, `AGENTS.md`) and automatically synthesize a standard bundle:
 
 ```bash
-packai init --from-existing
+$ packai init --from-existing
+
+🐺 PackAI Ingestion Engine
+  Source: /path/to/my-project
+  Target: ./my-agent-squad
+
+  Pack Level:        SYSTEM
+  Base Rules:        AGENTS.md (AAIF Standard)
+  Agents Discovered: architect, reviewer, sec-auditor
+  MCP Servers:       postgres-mcp, github-mcp
+  Binaries Needed:   node, python3
+  Secrets Detected:  DATABASE_URL, GITHUB_TOKEN
+
+✓ Pack successfully synthesized!
 ```
 
-### 3. Validate Format & Semantic Logic
+### 3. Compile into a Portable Container
 
 ```bash
-packai validate ./my-pack
+$ packai pack ./my-agent-squad --output dist/my-squad-1.0.0.packai
+
+Packing PackAI Bundle
+  Pack:    my-agent-squad
+  Version: 1.0.0
+  Output:  dist/my-squad-1.0.0.packai (ZIP archive)
+✓ Verification: SHA-256 integrity hash generated.
 ```
 
-### 4. Preview Changes Non-Destructively
+### 4. Non-Destructively Preview Changes (`diff`)
 
-Preview exact file additions, modifications, and client capability trade-offs before touching disk:
+Inspect exact file additions, modifications, and IDE capability notes before touching disk:
 
 ```bash
-packai diff ./my-pack --cwd ./my-project
+$ packai diff dist/my-squad-1.0.0.packai --cwd ./target-project
+
+🔍 PackAI Preview Diff: my-agent-squad (v1.0.0)
+Target directory: /workspace/target-project
+
+[CREATE] .claude/agents/architect.md (1,240 bytes)
+[CREATE] .claude/agents/reviewer.md (890 bytes)
+[CREATE] .cursor/rules/architect.mdc (1,310 bytes)
+[MCP MERGE] .cursor/mcp.json (+2 servers)
+[MCP MERGE] .mcp.json (+2 servers)
+
+Run "packai apply" to write these changes to disk.
 ```
 
-### 5. Provision Turnkey Workforce
+### 5. Provision Turnkey Agent System (`apply`)
 
 ```bash
-# Apply with interactive credential prompts and automatic dependency resolution:
-packai apply ./my-pack --cwd ./my-project -i --auto-install
+$ packai apply dist/my-squad-1.0.0.packai --cwd ./target-project -i --auto-install
+
+🐺 PackAI Universal Provisioning Engine
+Applying: my-agent-squad (v1.0.0) [Level: SYSTEM]
+
+Pre-Flight System Audit
+  Host OS:          darwin (arm64)
+  RAM Available:    16 GB
+  Package Managers: brew, npm, pip, uv
+  ✓ Platform compatibility verified
+  ✓ Dependencies verified: node (v22.4.0), python3 (v3.12.1)
+
+Provisioning AI Runtimes
+  ✓ Injected master protocol: CLAUDE.md
+  ✓ Injected subagent: .claude/agents/architect.md
+  ✓ Injected subagent: .claude/agents/reviewer.md
+  ✓ Wired 2 MCP servers into: .mcp.json
+  ✓ Injected Cursor rules: .cursorrules
+  ✓ Injected Cursor modular rules: .cursor/rules/*.mdc
+  ✓ Wired 2 MCP servers into: .cursor/mcp.json
+  ✓ Injected universal spec: AGENTS.md (Copilot/Zed/Aider)
+  ✓ Injected Copilot instructions: .github/copilot-instructions.md
+  ✓ Injected Windsurf rules: .windsurfrules
+  ✓ Injected Roo/Cline modes: .roomodes
+
+✓ Turnkey provisioning complete! 11 managed files recorded in .packai/lock.json.
 ```
 
-### 6. Inspect Installed Packs
+### 6. Clean De-Provisioning (`clean`)
 
 ```bash
-packai list --cwd ./my-project
-```
+$ packai clean dist/my-squad-1.0.0.packai --cwd ./target-project
 
-### 7. Cleanly De-Provision
+🧹 PackAI Safe De-Provisioner: my-agent-squad
+  ✗ Removed: .claude/agents/architect.md
+  ✗ Removed: .claude/agents/reviewer.md
+  ✗ Pruned: 2 servers from .mcp.json
+  ✗ Removed: .cursor/rules/architect.mdc
+  ✗ Pruned: 2 servers from .cursor/mcp.json
+  ✗ Removed: .github/copilot-instructions.md
+  ✗ Removed: .windsurfrules
+  ✗ Removed: .roomodes
 
-```bash
-packai clean ./my-pack --cwd ./my-project
+✓ Cleaned 11 items cleanly without modifying unrelated project files.
 ```
 
 ---
 
-## 🛡️ Security Shield & Audit
+## 🎯 Supported Targets
 
-Because AI agent packages interact with shell tools, local filesystems, and APIs, PackAI enforces defense-in-depth:
+A single `.packai` bundle compiles and maps natively to the following developer environments:
 
-1. **Zip-Slip Protection:** Archives are extracted using path traversal validation (`safeExtractZip`). Any archive containing relative directory escapes (`../../`) is rejected immediately.
-2. **Pre-Flight MCP Audit:** Analyzes MCP tool definitions for destructive shell commands, unverified remote scripts (`curl | bash`), and reverse shells before writing configs.
-3. **Prompt Injection Guard:** Statically scans instructions for jailbreaks, DAN patterns, and instruction override delimiters.
-4. **Credential Isolation:** API keys are never written to source control or pack archives. Secrets are securely stored in the host OS Keychain and injected into runtime environments as needed.
-5. **Traitor-Tracing Watermark:** Distributed packages can be tagged with zero-width steganographic markers (`U+200B` / `U+200C`). Run `packai trace <file>` to extract source attribution from leaked documents.
-
----
-
-## 📋 CLI Command Reference
-
-| Command | Alias | Description |
-| :--- | :--- | :--- |
-| `packai init [name]` | — | Scaffold a new pack skeleton, or reverse-engineer with `--from-existing` |
-| `packai validate [path]` | — | Validate manifest schema and companion files (`AGENTS.md`, `mcp.json`) |
-| `packai diff [path]` | — | Visual preview of file changes and client capability notices |
-| `packai apply [path]` | `install`, `i` | Provision agent system into target project (`--auto-install`, `-i`) |
-| `packai clean [path]` | `uninstall` | Safely remove provisioned files and prune MCP servers using lockfile |
-| `packai pack [path]` | — | Compile directory into a `.packai` ZIP container |
-| `packai unpack <file>` | — | Extract `.packai` container into a target directory |
-| `packai info [path]` | — | Display dossier, author metadata, requirements, and discovered agents |
-| `packai list [path]` | `ls` | List all PackAI packs currently installed in the workspace |
-| `packai export [path]` | — | Export official plugin manifests for Claude, Cursor, and Codex stores |
-| `packai run [target]` | — | Launch standalone black-box swarms with Keychain credential injection |
-| `packai trace [path]` | — | Forensically extract invisible zero-width leak tracking signatures |
+| Client | Configuration Injected | MCP Tools Wired | Subagent Hierarchy |
+| :--- | :--- | :---: | :---: |
+| **Claude Code** | `CLAUDE.md`, `.claude/agents/*.md`, `skills/` | `.mcp.json` + `settings.json` | ✅ Native context isolation |
+| **Cursor** | `.cursorrules`, `.cursor/rules/*.mdc` (glob-matched) | `.cursor/mcp.json` | Emulated via `.mdc` rules |
+| **Windsurf** | `.windsurfrules` | Cascade MCP config | Flattened persona rules |
+| **Roo-Code / Cline** | `.roomodes` (custom modes) | `.roo/mcp.json` | ✅ Custom mode isolation |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | VS Code workspace | Universal instructions |
+| **OpenCode & Zed** | `AGENTS.md` (Linux Foundation AAIF standard) | `opencode.json` | Universal specification |
 
 ---
 
-## 🧪 Verification & Tests
+## 📊 Comparison
 
-PackAI maintains a rigorous integration test suite using Node.js native test runner:
+| Feature | Raw Dotfiles / Gists | Vendor Stores (Cursor, GPT Store) | PackAI |
+| :--- | :---: | :---: | :---: |
+| **Cross-Client Portability** | ❌ Manual | ❌ Vendor locked | ✅ **Universal translation** |
+| **Pre-Flight Hardware / Runtime Audit** | ❌ None | ❌ None | ✅ **OS, RAM, binary audit** |
+| **Automated Dependency Setup** | ❌ Manual | ❌ None | ✅ **`--auto-install` support** |
+| **Multi-Agent & MCP Server Bundling** | ❌ Disconnected | ❌ Single-agent only | ✅ **Full squad packaging** |
+| **Lockfile & Atomic Uninstall** | ❌ Messy dotfiles | ❌ N/A | ✅ **`.packai/lock.json`** |
+| **Supply-Chain Security Defense** | ❌ None | ❌ Proprietary review | ✅ **Zip-Slip, MCP audit, Leaker tracing** |
+
+---
+
+## 🛡️ Security Shield
+
+Because agent packages configure tools, shells, and APIs, PackAI integrates defense-in-depth:
+
+```text
+Incoming Pack (.packai)
+       │
+       ▼
+[ 1. Safe Unpack ] ────► Intercepts Zip-Slip path traversal attempts (../../)
+       │
+       ▼
+[ 2. MCP Audit ]   ────► Flags dangerous commands: reverse shells, curl|bash, sudo
+       │
+       ▼
+[ 3. Prompt Guard ]────► Statically evaluates instruction overrides & jailbreak patterns
+       │
+       ▼
+[ 4. Key Isolation]────► Resolves API keys from OS Keychain (never embeds plaintext in files)
+       │
+       ▼
+[ 5. Watermarking ]────► Injects invisible zero-width unicode markers for leak forensics
+```
+
+- **Forensic Attribution:** Publishers can distribute marked bundles. If a private pack is leaked, running `packai trace <file>` recovers the cryptographic buyer ID.
+
+---
+
+## 💻 Command Reference
+
+```text
+Usage: packai [command] [options]
+
+Commands:
+  init [name]                      Scaffold a new pack, or reverse-engineer with --from-existing
+  validate [path]                  Validate packai.yaml, AGENTS.md, mcp.json, and skills/
+  diff [path]                      Visual preview of changes & client capability notices
+  apply [path] (alias: install, i) Turnkey provision agent system into target project
+  clean [path] (alias: uninstall)  Atomically remove provisioned files using lockfile
+  pack [path]                      Compile directory into a .packai container
+  unpack <file>                    Extract a .packai archive into a destination folder
+  info [path]                      Inspect dossier, author metadata, requirements, and agents
+  list [path] (alias: ls)          List all packs currently installed in the workspace
+  export [path]                    Generate official plugin manifests for Claude, Cursor, Codex
+  run [target]                     Execute standalone swarms with Keychain credential injection
+  trace [path]                     Forensic analysis to extract zero-width leak tracking signatures
+
+Options:
+  -V, --version                    Output current PackAI version
+  -h, --help                       Display help information
+```
+
+---
+
+## 🧪 Test Verification
+
+PackAI maintains a battle-tested integration suite using Node.js's native test runner (`node:test`):
 
 ```bash
-# Run the complete test suite:
+# Run test suite from repository root:
 npm test
 ```
 
 ```text
-✔ End-to-End Pack Lifecycle (Init -> Apply -> Clean) (263ms)
-✔ PackAI Lockfile, List & GitHub Copilot Provisioning (146ms)
-✔ PackAI Standards-First Engine & Ingestion (198ms)
-✔ Universal Pre-Flight & System Audit Engine (261ms)
-✔ PackAI Security Shield & Forensics (10ms)
-✔ Manifest Validation & Semantic Checks (136ms)
+▶ End-to-End Pack Lifecycle (Init -> Apply -> Clean)
+  ✔ packs into .packai archive and applies directly from the archive file (83ms)
+✔ End-to-End Pack Lifecycle (Init -> Apply -> Clean) (216ms)
+
+▶ PackAI Lockfile, List & GitHub Copilot Provisioning
+  ✔ applies pack, creates .packai/lock.json, and provisions GitHub Copilot (157ms)
+  ✔ cleans pack, removes GitHub Copilot instructions, and updates lockfile (6ms)
+✔ PackAI Lockfile, List & GitHub Copilot Provisioning (168ms)
+
+▶ PackAI Standards-First Engine & Ingestion
+  ✔ packai init --from-existing reverse engineers workspace into skeleton (15ms)
+  ✔ loadManifest parses packai.yaml and enriches companion AGENTS.md & mcp.json (1ms)
+  ✔ pack into .packai bundle archive and apply turnkey onto target project (151ms)
+  ✔ diff command executes cleanly and displays client capability audit notices (3ms)
+✔ PackAI Standards-First Engine & Ingestion (183ms)
+
+▶ Universal Pre-Flight & System Audit Engine
+  ✔ detectHostEnvironment correctly returns OS, arch, and package managers (86ms)
+  ✔ checkBinary identifies installed and missing binaries (131ms)
+  ✔ runPreflight evaluates full manifest requirements (52ms)
+✔ Universal Pre-Flight & System Audit Engine (270ms)
+
+▶ PackAI Security Shield & Forensics
+  ✔ auditMcpSecurity flags dangerous reverse shells and destructive commands (0.7ms)
+  ✔ auditMcpSecurity passes clean MCP configurations (0.06ms)
+  ✔ auditPromptInjection detects instruction override and DAN patterns (0.3ms)
+  ✔ watermark engine invisibly encodes and accurately decodes buyer payload (0.2ms)
+  ✔ safeExtractZip intercepts Zip-Slip path traversal attempts (7ms)
+✔ PackAI Security Shield & Forensics (9ms)
+
+▶ Manifest Validation & Semantic Checks
+  ✔ validates a valid simple pack manifest (59ms)
+  ✔ validates a valid system pack with universal requirements and workflow (25ms)
+  ✔ rejects invalid pack names (uppercase, invalid symbols) (23ms)
+  ✔ rejects invalid semantic version (22ms)
+  ✔ detects level inconsistencies in semantic checks (0.2ms)
+  ✔ detects missing execution entrypoint in semantic checks (0.1ms)
+✔ Manifest Validation & Semantic Checks (132ms)
+
 ℹ tests 41
 ℹ suites 10
 ℹ pass 41
@@ -207,24 +310,29 @@ npm test
 
 ---
 
-## 📂 Monorepo Structure
+## 📂 Repository Layout
 
 ```text
 aipack/
-├── cli/                 # The Node.js command-line interface & compiler engine
-│   ├── bin/             # CLI binary entry point (`packai`)
-│   ├── src/commands/    # init, validate, apply, clean, diff, pack, unpack, run, info, list, trace
-│   ├── src/exporters/   # Transpilers for Claude, Cursor, Windsurf, Copilot, Roo, Plugins
-│   ├── src/schema/      # Draft-07 JSON Schema validation
-│   └── test/            # Integration & battle test suites
+├── cli/                   # Node.js CLI & compiler engine (`packai`)
+│   ├── bin/packai.js      # CLI entrypoint
+│   ├── src/commands/      # init, validate, apply, clean, diff, pack, unpack, run, info
+│   ├── src/exporters/     # Target translators (Claude, Cursor, Windsurf, Copilot, Roo)
+│   ├── src/schema/        # JSON Schema for packai.yaml manifests
+│   ├── src/utils/         # Pre-flight audit, credentials, lockfile, security shield
+│   └── test/              # 41 integration & battle tests
 │
-├── marketplace/         # Next.js 16 Web Portal & Registry Explorer
-│   ├── src/app/         # App Router: landing, browse, pack details
-│   └── supabase/        # Database schema, triggers & RLS policies
+├── marketplace/           # Next.js 16 Web Portal & Registry Explorer
+│   ├── src/app/           # Next.js App Router (landing, browse, pack view)
+│   └── supabase/          # Database schema & RLS policies
 │
-└── docs/                # Specifications and architectural decision records
-    ├── FORMAT_SPEC.md
-    └── ARCHITECTURE_DECISIONS.md
+├── docs/                  # Technical specifications
+│   ├── FORMAT_SPEC.md     # PackAI format specification v2.0
+│   └── ARCHITECTURE_DECISIONS.md
+│
+└── .github/               # CI/CD and community templates
+    ├── workflows/ci.yml   # Multi-Node & cross-platform testing matrix
+    └── ISSUE_TEMPLATE/    # Bug report and feature request forms
 ```
 
 ---
@@ -234,6 +342,5 @@ aipack/
 PackAI format and CLI are open-source software licensed under the **[MIT License](./LICENSE)**.
 
 <div align="center">
-<sub>"Platformların üstüne mimari kurup yolu tutanlar standartları belirler."</sub><br>
 <sub>TÜRK MİLLETİ VAR OLSUN. 🐺</sub>
 </div>

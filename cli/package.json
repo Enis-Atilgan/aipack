@@ -1,27 +1,39 @@
 {
   "name": "packai",
   "version": "0.1.0",
-  "description": "PackAI: Standards-first bundle, pre-flight provisioning & cross-client distribution layer for AI agents",
+  "description": "The package manager and cross-client distribution engine for AI agent systems (AGENTS.md, Cursor, Claude Code, MCP)",
   "type": "module",
   "bin": {
     "packai": "./bin/packai.js",
     "aipack": "./bin/packai.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Enis-Atilgan/aipack.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/Enis-Atilgan/aipack/issues"
+  },
+  "homepage": "https://github.com/Enis-Atilgan/aipack#readme",
   "scripts": {
     "test": "node --test test/",
     "lint": "eslint src/"
   },
   "keywords": [
     "ai",
-    "llm",
-    "persona",
-    "agent",
+    "agents",
+    "multi-agent",
+    "mcp",
+    "model-context-protocol",
     "cursor",
-    "claude",
-    "chatgpt",
-    "mcp"
+    "claude-code",
+    "windsurf",
+    "copilot",
+    "package-manager",
+    "agents-md"
   ],
-  "author": "hatred",
+  "author": "Enis Atılgan <enisatilgan0101@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "ajv": "^8.17.0",
